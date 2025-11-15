@@ -1,11 +1,12 @@
 import { User, ApplicantProfile, Assessment, LeaderboardEntry } from '@/types';
 
 // API Base URL - reads from environment variable
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Generic API call function with error handling
 async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  // ✅ Add /api prefix to all endpoints
+  const url = `${API_BASE_URL}/api${endpoint}`;
   
   const config: RequestInit = {
     headers: {

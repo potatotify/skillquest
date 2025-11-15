@@ -12,52 +12,54 @@ dotenv.config();
 
 const app = express();
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB once
+let isConnected = false;
+const initDB = async () => {
+  if (!isConnected) {
+    await connectDB();
+    isConnected = true;
+  }
+};
 
-// ✅ CORS Configuration - Must be BEFORE routes
-app.use(cors({
-  origin: function(origin, callback) {
-    const allowedOrigins = [
-      'https://skillquest-neon.vercel.app',
-      'http://localhost:5173',
-      'http://localhost:3000'
-    ];
-    
-    // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  maxAge: 600 // Cache preflight for 10 minutes
-}));
+// Initialize DB
+initDB();
 
-// ✅ Handle preflight requests explicitly
-app.options('*', cors());
+// CORS - Allow everything for Vercel
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.header(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+  );
+  
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  next();
+});
 
-// Body parser
 app.use(express.json());
 
-// Test route
+// Root route
 app.get('/', (req, res) => {
   res.json({ 
     message: 'IFA SkillQuest API is running!',
     status: 'OK',
-    timestamp: new Date().toISOString()
+    routes: {
+      users: '/api/users',
+      profiles: '/api/profiles',
+      assessments: '/api/assessments',
+      leaderboard: '/api/leaderboard'
+    }
   });
 });
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'healthy' });
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
 // API Routes
@@ -67,23 +69,17 @@ app.use('/api/assessments', assessmentRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 
 // 404 handler
-app.use((req, res, next) => {
+app.use((req, res) => {
   res.status(404).json({ 
     error: 'Not Found',
-    message: `Route ${req.url} not found`
+    message: `Route ${req.url} not found`,
+    url: req.url,
+    method: req.method
   });
 });
 
 // Error handler
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-
-// Listen only in development
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`✅ Server running on port ${PORT}`);
-  });
-}
-
+// Export for Vercel
 export default app;

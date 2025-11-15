@@ -152,7 +152,7 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
 export const initializeDefaultAdmin = async (): Promise<void> => {
   try {
     // Check if admin exists
-    const adminEmail = 'ajinkyadhumal842004@gmail.com';
+    const adminEmail = 'ajinkyadhumal842004@gmail.com','chiragkhati04@gmail.com';
     const existingAdmin = await getUserByEmail(adminEmail);
     
     if (!existingAdmin) {

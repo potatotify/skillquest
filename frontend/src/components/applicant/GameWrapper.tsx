@@ -54,17 +54,17 @@ export const GameWrapper: React.FC = () => {
           return;
         }
 
-        // Check if game is unlocked
-        if (gameType === 'water-capacity' && !assessment.games.minesweeper) {
-          toast.warning('Please complete Minesweeper first to unlock this game.', {
+        // Check if game is unlocked (new order: Unblock Me -> Minesweeper -> Water Capacity)
+        if (gameType === 'minesweeper' && !assessment.games['unblock-me']) {
+          toast.warning('Please complete Unblock Me first to unlock this game.', {
             duration: 3000,
             icon: '🔒',
           });
           navigate('/applicant/assessment');
           return;
         }
-        if (gameType === 'unblock-me' && !assessment.games['water-capacity']) {
-          toast.warning('Please complete Water Capacity first to unlock this game.', {
+        if (gameType === 'water-capacity' && !assessment.games.minesweeper) {
+          toast.warning('Please complete Minesweeper first to unlock this game.', {
             duration: 3000,
             icon: '🔒',
           });

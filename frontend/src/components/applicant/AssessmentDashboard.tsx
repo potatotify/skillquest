@@ -230,12 +230,12 @@ export const AssessmentDashboard: React.FC = () => {
   const isGameUnlocked = (gameType: GameType): boolean => {
     if (!assessment) return false;
     
-    if (gameType === 'minesweeper') return true;
+    if (gameType === 'unblock-me') return true;
+    if (gameType === 'minesweeper') {
+      return assessment.games['unblock-me'] !== null;
+    }
     if (gameType === 'water-capacity') {
       return assessment.games.minesweeper !== null;
-    }
-    if (gameType === 'unblock-me') {
-      return assessment.games['water-capacity'] !== null;
     }
     return false;
   };
@@ -243,12 +243,12 @@ export const AssessmentDashboard: React.FC = () => {
   const isTrialUnlocked = (gameType: GameType): boolean => {
     if (!assessment) return false;
     
-    if (gameType === 'minesweeper') return true;
+    if (gameType === 'unblock-me') return true;
+    if (gameType === 'minesweeper') {
+      return assessment.games['unblock-me'] !== null;
+    }
     if (gameType === 'water-capacity') {
       return assessment.games.minesweeper !== null;
-    }
-    if (gameType === 'unblock-me') {
-      return assessment.games['water-capacity'] !== null;
     }
     return false;
   };
@@ -271,14 +271,25 @@ export const AssessmentDashboard: React.FC = () => {
     }, 500);
   };
 
-  // Only check Minesweeper and Water Capacity (Unblock Me is coming soon)
-  const allGamesCompleted = assessment?.games.minesweeper !== null &&
+  // Check all three games in the new order
+  const allGamesCompleted = assessment?.games['unblock-me'] !== null &&
+    assessment?.games.minesweeper !== null &&
     assessment?.games['water-capacity'] !== null;
 
-  const hasFailedGame = assessment?.games.minesweeper?.failed ||
+  const hasFailedGame = assessment?.games['unblock-me']?.failed ||
+    assessment?.games.minesweeper?.failed ||
     assessment?.games['water-capacity']?.failed;
 
   const games = [
+    {
+      type: 'unblock-me' as GameType,
+      title: 'Unblock Me',
+      description: 'Challenge your spatial reasoning and planning',
+      skill: 'Spatial Reasoning & Planning',
+      Icon: Car,
+      color: 'from-orange-500 to-orange-400',
+      available: true,
+    },
     {
       type: 'minesweeper' as GameType,
       title: 'Minesweeper',
@@ -297,15 +308,6 @@ export const AssessmentDashboard: React.FC = () => {
       color: 'from-game-teal-500 to-game-teal-400',
       available: true,
     },
-    {
-      type: 'unblock-me' as GameType,
-      title: 'Unblock Me',
-      description: 'Challenge your spatial reasoning and planning',
-      skill: 'Spatial Reasoning & Planning',
-      Icon: Car,
-      color: 'from-orange-500 to-orange-400',
-      available: false,
-    },
   ];
 
   // Calculate progress
@@ -314,9 +316,9 @@ export const AssessmentDashboard: React.FC = () => {
 
   // Get next game to play
   const getNextGame = (): GameType | null => {
+    if (!isGameCompleted('unblock-me')) return 'unblock-me';
     if (!isGameCompleted('minesweeper')) return 'minesweeper';
     if (!isGameCompleted('water-capacity')) return 'water-capacity';
-    if (!isGameCompleted('unblock-me')) return 'unblock-me';
     return null;
   };
 
@@ -325,10 +327,10 @@ export const AssessmentDashboard: React.FC = () => {
   // Motivational messages based on progress
   const getMotivationalMessage = () => {
     if (completedGames === 0) return { text: "Let's start your journey!", Icon: Rocket };
-    if (completedGames === 1) return { text: "Halfway there! Keep it up!", Icon: Dumbbell };
-    if (completedGames === 2 && !allGamesCompleted) return { text: "Last game available - coming soon!", Icon: Target };
+    if (completedGames === 1) return { text: "Keep the momentum going!", Icon: Dumbbell };
+    if (completedGames === 2 && !allGamesCompleted) return { text: "One more to go! You're almost there!", Icon: Target };
     if (hasFailedGame) return { text: "Review your performance and try again!", Icon: Target };
-    return { text: "Amazing! You've completed all available games!", Icon: Trophy };
+    return { text: "Amazing! You've completed all games!", Icon: Trophy };
   };
 
   const motivationalMessage = getMotivationalMessage();
@@ -606,23 +608,6 @@ export const AssessmentDashboard: React.FC = () => {
                   <Card className={`${!unlocked || !game.available ? 'opacity-60' : ''} border-2 border-game-purple-500/20 hover:shadow-lg hover:shadow-game-purple-500/10 transition-all duration-300 bg-white/90 backdrop-blur-xl relative overflow-hidden group ${
                     game.type === nextGame && !completed ? 'ring-2 ring-game-purple-500 ring-offset-2' : ''
                   }`}>
-                    {/* Coming Soon Ribbon */}
-                    {!game.available && (
-                      <motion.div
-                        className="absolute top-3 right-3 z-30"
-                        initial={{ scale: 0, rotate: 0 }}
-                        animate={{ scale: 1, rotate: 12 }}
-                        transition={{ delay: 0.5, type: "spring", stiffness: 200, damping: 15 }}
-                      >
-                        <motion.div
-                          className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-600 text-white text-sm font-extrabold px-4 py-2 rounded-full shadow-2xl border-2 border-white"
-                          animate={{ scale: [1, 1.08, 1] }}
-                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                        >
-                          Coming Soon
-                        </motion.div>
-                      </motion.div>
-                    )}
                     
                     {/* Next Up Badge */}
                     {game.type === nextGame && !completed && game.available && (

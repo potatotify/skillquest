@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAssessmentByUserId, getProfileByUserId } from '@/lib/storage';
 import { Assessment, ApplicantProfile } from '@/types';
-import { Trophy, CheckCircle, Clock, Target, LogOut, Bomb, Droplet, Award, Zap, Sparkles, Star, TrendingUp, AlertCircle, User, Mail, GraduationCap, MapPin, Briefcase, PartyPopper, ArrowLeft } from 'lucide-react';
+import { Trophy, CheckCircle, Clock, Target, LogOut, Bomb, Droplet, Award, Zap, Sparkles, Star, TrendingUp, AlertCircle, User, Mail, GraduationCap, MapPin, Briefcase, PartyPopper, ArrowLeft, Car } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -34,12 +34,13 @@ export const Results: React.FC = () => {
         // ✅ Fetch assessment from MongoDB (now async)
         const userAssessment = await getAssessmentByUserId(user.id);
 
-        // Check if both available games (Minesweeper and Water Capacity) are completed
-        const bothGamesCompleted = userAssessment?.games.minesweeper !== null && 
-                                   userAssessment?.games['water-capacity'] !== null;
+        // Check if all three games are completed
+        const allGamesCompleted = userAssessment?.games['unblock-me'] !== null &&
+                                  userAssessment?.games.minesweeper !== null && 
+                                  userAssessment?.games['water-capacity'] !== null;
 
-        if (!userProfile || !userAssessment || !bothGamesCompleted) {
-          toast.warning('Please complete both available games first. Redirecting to dashboard...', {
+        if (!userProfile || !userAssessment || !allGamesCompleted) {
+          toast.warning('Please complete all three games first. Redirecting to dashboard...', {
             duration: 3000,
             icon: '⚠️',
           });
@@ -90,12 +91,20 @@ export const Results: React.FC = () => {
 
   const games = [
     {
+      type: 'unblock-me',
+      title: 'Unblock Me',
+      icon: Car,
+      skill: 'Spatial Reasoning & Problem Solving',
+      score: assessment.games['unblock-me'],
+      gradient: 'from-[#8558ed] to-[#b18aff]',
+    },
+    {
       type: 'minesweeper',
       title: 'Minesweeper',
       icon: Bomb,
       skill: 'Risk Assessment & Deductive Logic',
       score: assessment.games.minesweeper,
-      gradient: 'from-[#8558ed] to-[#b18aff]',
+      gradient: 'from-rose-500 to-pink-500',
     },
     {
       type: 'water-capacity',
@@ -128,11 +137,10 @@ export const Results: React.FC = () => {
     return { icon: AlertCircle, color: 'text-gray-500', bg: 'bg-gray-50', border: 'border-gray-200' };
   };
 
-  // Calculate overall performance metrics (only for available games: Minesweeper and Water Capacity)
-  const availableGames = games.filter(g => g.type !== 'unblock-me');
-  const totalPuzzlesCompleted = availableGames.reduce((sum, game) => sum + (game.score?.puzzlesCompleted || 0), 0);
-  const allGamesCompleted = availableGames.every(game => game.score && game.score.puzzlesCompleted > 0);
-  const anyGameCompleted = availableGames.some(game => game.score && game.score.puzzlesCompleted > 0);
+  // Calculate overall performance metrics (all three games)
+  const totalPuzzlesCompleted = games.reduce((sum, game) => sum + (game.score?.puzzlesCompleted || 0), 0);
+  const allGamesCompleted = games.every(game => game.score && game.score.puzzlesCompleted > 0);
+  const anyGameCompleted = games.some(game => game.score && game.score.puzzlesCompleted > 0);
   
   const getOverallPerformance = () => {
     const score = assessment.totalScore;
@@ -298,7 +306,7 @@ export const Results: React.FC = () => {
         </motion.div>
 
         {/* Individual Game Scores */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {games.map((game, idx) => {
             const GameIcon = game.icon;
             const badge = game.score ? getScoreBadge(game.score.puzzlesCompleted) : null;
@@ -454,9 +462,9 @@ export const Results: React.FC = () => {
                 <p className="text-[#8558ed] font-bold text-center flex items-center justify-center gap-2">
                   <Sparkles className="w-5 h-5" />
                   {allGamesCompleted 
-                    ? 'Thank you for completing all available games in the IFA Hiring Platform assessment. We will review your performance and contact you soon!'
+                    ? 'Thank you for completing all three games in the IFA Hiring Platform assessment. We will review your performance and contact you soon!'
                     : totalPuzzlesCompleted > 0
-                    ? 'Your partial results have been recorded. Complete both available games to improve your score.'
+                    ? 'Your partial results have been recorded. Complete all three games to improve your score.'
                     : 'Your assessment was recorded but no puzzles were completed. You may want to try again.'
                   }
                 </p>

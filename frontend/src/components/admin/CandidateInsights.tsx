@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ApplicantProfile, Assessment } from '@/types';
-import { Clock, Users, Bomb, Droplet } from 'lucide-react';
+import { Clock, Users, Bomb, Droplet, Car } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface CandidateInsightsProps {
@@ -11,6 +11,7 @@ interface CandidateInsightsProps {
 
 interface GameTimeData {
   name: string;
+  unblockMe: number;
   minesweeper: number;
   waterCapacity: number;
 }
@@ -25,6 +26,7 @@ export const CandidateInsights: React.FC<CandidateInsightsProps> = ({ profiles, 
 
         return {
           name: profile.name,
+          unblockMe: assessment.games['unblock-me']?.timeSpent || 0,
           minesweeper: assessment.games.minesweeper?.timeSpent || 0,
           waterCapacity: assessment.games['water-capacity']?.timeSpent || 0,
         };
@@ -36,6 +38,7 @@ export const CandidateInsights: React.FC<CandidateInsightsProps> = ({ profiles, 
 
   // Calculate average times for each game
   const avgTimes = {
+    unblockMe: timeData.reduce((sum, item) => sum + item.unblockMe, 0) / timeData.length || 0,
     minesweeper: timeData.reduce((sum, item) => sum + item.minesweeper, 0) / timeData.length || 0,
     waterCapacity: timeData.reduce((sum, item) => sum + item.waterCapacity, 0) / timeData.length || 0,
   };
@@ -49,7 +52,7 @@ export const CandidateInsights: React.FC<CandidateInsightsProps> = ({ profiles, 
 
   // Get the maximum time for scaling the bars
   const maxTime = Math.max(
-    ...timeData.flatMap(item => [item.minesweeper, item.waterCapacity])
+    ...timeData.flatMap(item => [item.unblockMe, item.minesweeper, item.waterCapacity])
   );
 
   return (
@@ -73,11 +76,32 @@ export const CandidateInsights: React.FC<CandidateInsightsProps> = ({ profiles, 
       </Card>
 
       {/* Average Time Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
+        >
+          <Card className="bg-gradient-to-br from-purple-500/5 to-purple-400/5 border-2 border-purple-500/20 hover:shadow-lg transition-all duration-300">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-purple-500 rounded-full flex items-center justify-center">
+                  <Car className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-purple-700">Unblock Me</h3>
+                  <p className="text-2xl font-extrabold text-purple-600">{formatTime(Math.round(avgTimes.unblockMe))}</p>
+                  <p className="text-sm text-gray-600">Average Time</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
         >
           <Card className="bg-gradient-to-br from-game-purple-500/5 to-game-purple-400/5 border-2 border-game-purple-500/20 hover:shadow-lg transition-all duration-300">
             <CardContent className="pt-6">
@@ -140,6 +164,27 @@ export const CandidateInsights: React.FC<CandidateInsightsProps> = ({ profiles, 
               >
                 <h4 className="font-semibold text-gray-800 mb-3">{candidate.name}</h4>
                 
+                {/* Unblock Me Bar */}
+                <div className="mb-3">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-medium text-purple-700 flex items-center gap-2">
+                      <Car className="w-4 h-4" />
+                      Unblock Me
+                    </span>
+                    <span className="text-sm font-bold text-purple-600">
+                      {formatTime(candidate.unblockMe)}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(candidate.unblockMe / maxTime) * 100}%` }}
+                      transition={{ duration: 1, delay: index * 0.1 }}
+                      className="bg-gradient-to-r from-purple-600 to-purple-500 h-2 rounded-full"
+                    />
+                  </div>
+                </div>
+
                 {/* Minesweeper Bar */}
                 <div className="mb-3">
                   <div className="flex justify-between items-center mb-1">

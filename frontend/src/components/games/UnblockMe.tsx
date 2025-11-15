@@ -1,19 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Trophy, RotateCcw, Sparkles, Zap, Star, Target, Flame, Car, MousePointer, Keyboard, CheckCircle2, RefreshCw } from 'lucide-react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useTabSwitchDetection } from '@/hooks/useTabSwitchDetection';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-
-interface Block {
-  id: number;
-  row: number;
-  col: number;
-  length: number;
-  orientation: 'horizontal' | 'vertical';
-  isTarget: boolean;
-  color: string;
-}
+import { Car, Target, Sparkles, Zap, Star, Trophy, MousePointer, Keyboard, CheckCircle2 } from 'lucide-react';
 
 interface UnblockMeProps {
   onComplete: (score: number, totalMoves: number, failed?: boolean, failureReason?: string) => void;
@@ -21,361 +10,646 @@ interface UnblockMeProps {
   isTrialMode?: boolean;
 }
 
-const GRID_SIZE = 6;
-const TARGET_ROW = 2;
-const TARGET_EXIT_COL = 5;
+type Block = {
+  id: number;
+  row: number;
+  col: number;
+  length: number;
+  isHorizontal: boolean;
+  isTarget: boolean;
+};
 
-// Pre-defined puzzles to ensure they are all solvable and properly designed
-const PREDEFINED_PUZZLES: Block[][] = [
-  // Level 1 - Very Easy
-  [
-    { id: 0, row: 2, col: 0, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 2, col: 3, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 4, col: 1, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-green-500' },
-  ],
-  // Level 2 - Easy
-  [
-    { id: 0, row: 2, col: 1, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 3, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 3, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 4, col: 4, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-yellow-500' },
-  ],
-  // Level 3 - Easy
-  [
-    { id: 0, row: 2, col: 0, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 2, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 1, col: 4, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 4, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-yellow-500' },
-  ],
-  // Level 4 - Easy
-  [
-    { id: 0, row: 2, col: 2, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 0, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 0, col: 2, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 3, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 2, col: 4, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-purple-500' },
-  ],
-  // Level 5 - Medium
-  [
-    { id: 0, row: 2, col: 1, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 0, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 0, col: 1, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 3, col: 3, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 1, col: 2, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-purple-500' },
-  ],
-  // Level 6 - Medium
-  [
-    { id: 0, row: 2, col: 0, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 2, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 1, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 3, col: 3, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 4, col: 2, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-purple-500' },
-  ],
-  // Level 7 - Medium
-  [
-    { id: 0, row: 2, col: 2, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 0, col: 2, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 1, col: 5, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 3, col: 2, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-purple-500' },
-  ],
-  // Level 8 - Challenging
-  [
-    { id: 0, row: 2, col: 1, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 1, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 0, col: 0, length: 3, orientation: 'vertical', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 1, col: 3, length: 3, orientation: 'vertical', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 3, col: 0, length: 3, orientation: 'horizontal', isTarget: false, color: 'bg-purple-500' },
-    { id: 5, row: 4, col: 4, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-pink-500' },
-    { id: 6, row: 0, col: 4, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-indigo-500' },
-  ],
-  // Level 9 - Challenging
-  [
-    { id: 0, row: 2, col: 0, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 2, length: 3, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 1, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 0, col: 3, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 3, col: 3, length: 3, orientation: 'horizontal', isTarget: false, color: 'bg-purple-500' },
-    { id: 5, row: 4, col: 2, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-pink-500' },
-    { id: 6, row: 3, col: 0, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-indigo-500' },
-    { id: 7, row: 0, col: 5, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-orange-500' },
-  ],
-  // Level 10 - Challenging
-  [
-    { id: 0, row: 2, col: 1, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 1, col: 1, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 0, col: 2, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 1, col: 4, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-purple-500' },
-    { id: 5, row: 3, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-pink-500' },
-    { id: 6, row: 3, col: 3, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-indigo-500' },
-    { id: 7, row: 4, col: 4, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-orange-500' },
-  ],
-  // Level 11 - Medium
-  [
-    { id: 0, row: 2, col: 0, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 1, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 2, col: 2, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 0, col: 3, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 3, col: 3, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-purple-500' },
-    { id: 5, row: 5, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-pink-500' },
-  ],
-  // Level 12 - Medium
-  [
-    { id: 0, row: 2, col: 1, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 0, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 0, col: 1, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 1, col: 3, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 3, col: 1, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-purple-500' },
-    { id: 5, row: 4, col: 0, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-pink-500' },
-  ],
-  // Level 13 - Medium
-  [
-    { id: 0, row: 2, col: 2, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 1, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 0, col: 2, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 1, col: 4, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 3, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-purple-500' },
-    { id: 5, row: 3, col: 2, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-pink-500' },
-  ],
-  // Level 14 - Medium
-  [
-    { id: 0, row: 2, col: 0, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 0, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 0, col: 2, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 2, col: 3, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 3, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-purple-500' },
-    { id: 5, row: 5, col: 4, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-pink-500' },
-  ],
-  // Level 15 - Medium
-  [
-    { id: 0, row: 2, col: 1, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 1, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 0, col: 2, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 1, col: 4, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 3, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-purple-500' },
-    { id: 5, row: 3, col: 3, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-pink-500' },
-  ],
-  // Level 16 - Medium
-  [
-    { id: 0, row: 2, col: 0, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 1, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 0, col: 2, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 2, col: 3, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 3, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-purple-500' },
-    { id: 5, row: 4, col: 2, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-pink-500' },
-  ],
-  // Level 17 - Medium
-  [
-    { id: 0, row: 2, col: 2, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 0, col: 2, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 0, col: 3, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 3, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-purple-500' },
-    { id: 5, row: 4, col: 4, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-pink-500' },
-  ],
-  // Level 18 - Medium
-  [
-    { id: 0, row: 2, col: 1, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 0, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 0, col: 1, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 0, col: 3, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 3, col: 1, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-purple-500' },
-    { id: 5, row: 4, col: 3, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-pink-500' },
-  ],
-  // Level 19 - Medium
-  [
-    { id: 0, row: 2, col: 0, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 1, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 0, col: 2, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 1, col: 4, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 2, col: 3, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-purple-500' },
-    { id: 5, row: 3, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-pink-500' },
-  ],
-  // Level 20 - Medium
-  [
-    { id: 0, row: 2, col: 1, length: 2, orientation: 'horizontal', isTarget: true, color: 'bg-red-500' },
-    { id: 1, row: 0, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-blue-500' },
-    { id: 2, row: 1, col: 1, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-green-500' },
-    { id: 3, row: 0, col: 2, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-yellow-500' },
-    { id: 4, row: 1, col: 4, length: 2, orientation: 'vertical', isTarget: false, color: 'bg-purple-500' },
-    { id: 5, row: 3, col: 0, length: 2, orientation: 'horizontal', isTarget: false, color: 'bg-pink-500' },
-  ],
-];
+type Level = {
+  name: string;
+  difficulty: 'Easy' | 'Hard';
+  optimalMoves: number;
+  blocks: Block[];
+};
 
 export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining, isTrialMode = false }) => {
+  const GRID_SIZE = 6;
+  const CELL_SIZE = 80;
+  const TOTAL_TIME = 300;
   const navigate = useNavigate();
+
+  const [currentLevel, setCurrentLevel] = useState(0);
   const [blocks, setBlocks] = useState<Block[]>([]);
-  const [selectedBlock, setSelectedBlock] = useState<number | null>(null);
   const [moves, setMoves] = useState(0);
-  const [level, setLevel] = useState(1);
-  const [puzzlesCompleted, setPuzzlesCompleted] = useState(0);
   const [totalMoves, setTotalMoves] = useState(0);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [levelMoves, setLevelMoves] = useState<number[]>(Array(17).fill(0));
+  const [levelTimes, setLevelTimes] = useState<number[]>(Array(17).fill(0));
+  const [score, setScore] = useState(0);
+  const [puzzlesCompleted, setPuzzlesCompleted] = useState(0);
+  const [levelComplete, setLevelComplete] = useState(false);
+  const [allLevelsComplete, setAllLevelsComplete] = useState(false);
+  const [draggedBlock, setDraggedBlock] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [tempPosition, setTempPosition] = useState<{ row: number; col: number } | null>(null);
+  const [levelStartTime, setLevelStartTime] = useState<number>(TOTAL_TIME);
+
+  const gridRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const hasInitializedRef = useRef(false);
+  const hasCompletedRef = useRef(false);
 
   // Tab switch detection - only enabled when not in trial mode
   useTabSwitchDetection({
     maxViolations: 3,
     enabled: !isTrialMode,
     onDisqualified: () => {
-      // Mark as failed and navigate to assessment page
       onComplete(puzzlesCompleted, totalMoves, true, 'Disqualified due to tab switching violations');
       navigate('/applicant/assessment');
     },
   });
 
-  const generatePuzzle = useCallback((levelNum: number): Block[] => {
-    // Use pre-defined puzzles, cycling through them
-    const puzzleIndex = (levelNum + refreshKey) % PREDEFINED_PUZZLES.length;
-    // Deep clone the puzzle to avoid mutations
-    return JSON.parse(JSON.stringify(PREDEFINED_PUZZLES[puzzleIndex]));
-  }, [refreshKey]);
+  const allLevels: Level[] = [
+    // Easy Levels (1-10)
+    {
+      name: 'Level 1',
+      difficulty: 'Easy',
+      optimalMoves: 7,
+      blocks: [
+        { id: 1, row: 2, col: 0, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 1, col: 4, length: 3, isHorizontal: false, isTarget: false },
+        { id: 3, row: 1, col: 5, length: 2, isHorizontal: false, isTarget: false },
+        { id: 5, row: 3, col: 5, length: 2, isHorizontal: false, isTarget: false },
+        { id: 7, row: 4, col: 1, length: 2, isHorizontal: false, isTarget: false },
+        { id: 4, row: 0, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 6, row: 1, col: 0, length: 3, isHorizontal: true, isTarget: false },
+        { id: 8, row: 3, col: 0, length: 2, isHorizontal: true, isTarget: false },
+        { id: 9, row: 4, col: 3, length: 2, isHorizontal: true, isTarget: false },
+        { id: 10, row: 5, col: 2, length: 3, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 2',
+      difficulty: 'Easy',
+      optimalMoves: 9,
+      blocks: [
+        { id: 1, row: 2, col: 0, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 0, length: 2, isHorizontal: false, isTarget: false },
+        { id: 3, row: 3, col: 1, length: 3, isHorizontal: false, isTarget: false },
+        { id: 5, row: 2, col: 2, length: 3, isHorizontal: false, isTarget: false },
+        { id: 7, row: 2, col: 4, length: 2, isHorizontal: false, isTarget: false },
+        { id: 4, row: 0, col: 2, length: 3, isHorizontal: true, isTarget: false },
+        { id: 6, row: 1, col: 1, length: 2, isHorizontal: true, isTarget: false },
+        { id: 8, row: 1, col: 3, length: 2, isHorizontal: true, isTarget: false },
+        { id: 9, row: 4, col: 3, length: 2, isHorizontal: true, isTarget: false },
+        { id: 10, row: 5, col: 2, length: 2, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 3',
+      difficulty: 'Easy',
+      optimalMoves: 11,
+      blocks: [
+        { id: 1, row: 2, col: 2, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 1, col: 0, length: 2, isHorizontal: false, isTarget: false },
+        { id: 3, row: 1, col: 1, length: 2, isHorizontal: false, isTarget: false },
+        { id: 5, row: 0, col: 2, length: 2, isHorizontal: false, isTarget: false },
+        { id: 7, row: 0, col: 3, length: 2, isHorizontal: false, isTarget: false },
+        { id: 9, row: 1, col: 4, length: 2, isHorizontal: false, isTarget: false },
+        { id: 10, row: 3, col: 0, length: 2, isHorizontal: false, isTarget: false },
+        { id: 11, row: 4, col: 4, length: 2, isHorizontal: false, isTarget: false },
+        { id: 4, row: 0, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 6, row: 3, col: 1, length: 2, isHorizontal: true, isTarget: false },
+        { id: 8, row: 3, col: 3, length: 2, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 4',
+      difficulty: 'Easy',
+      optimalMoves: 8,
+      blocks: [
+        { id: 1, row: 2, col: 1, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 2, length: 2, isHorizontal: false, isTarget: false },
+        { id: 3, row: 2, col: 0, length: 3, isHorizontal: false, isTarget: false },
+        { id: 4, row: 1, col: 3, length: 2, isHorizontal: true, isTarget: false },
+        { id: 5, row: 3, col: 3, length: 3, isHorizontal: true, isTarget: false },
+        { id: 6, row: 4, col: 0, length: 2, isHorizontal: true, isTarget: false },
+        { id: 7, row: 5, col: 1, length: 3, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 5',
+      difficulty: 'Easy',
+      optimalMoves: 10,
+      blocks: [
+        { id: 1, row: 2, col: 0, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 1, length: 3, isHorizontal: false, isTarget: false },
+        { id: 3, row: 1, col: 2, length: 2, isHorizontal: false, isTarget: false },
+        { id: 4, row: 0, col: 3, length: 2, isHorizontal: true, isTarget: false },
+        { id: 5, row: 1, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 6, row: 3, col: 2, length: 2, isHorizontal: true, isTarget: false },
+        { id: 7, row: 4, col: 0, length: 3, isHorizontal: true, isTarget: false },
+        { id: 8, row: 5, col: 3, length: 2, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 6',
+      difficulty: 'Easy',
+      optimalMoves: 12,
+      blocks: [
+        { id: 1, row: 2, col: 1, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 0, length: 2, isHorizontal: false, isTarget: false },
+        { id: 3, row: 1, col: 1, length: 3, isHorizontal: false, isTarget: false },
+        { id: 4, row: 0, col: 2, length: 2, isHorizontal: false, isTarget: false },
+        { id: 5, row: 3, col: 3, length: 2, isHorizontal: false, isTarget: false },
+        { id: 6, row: 0, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 7, row: 1, col: 3, length: 2, isHorizontal: true, isTarget: false },
+        { id: 8, row: 4, col: 1, length: 2, isHorizontal: true, isTarget: false },
+        { id: 9, row: 5, col: 0, length: 2, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 7',
+      difficulty: 'Easy',
+      optimalMoves: 9,
+      blocks: [
+        { id: 1, row: 2, col: 2, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 1, col: 0, length: 3, isHorizontal: false, isTarget: false },
+        { id: 3, row: 0, col: 2, length: 3, isHorizontal: false, isTarget: false },
+        { id: 4, row: 3, col: 4, length: 2, isHorizontal: false, isTarget: false },
+        { id: 5, row: 0, col: 3, length: 2, isHorizontal: true, isTarget: false },
+        { id: 6, row: 3, col: 0, length: 3, isHorizontal: true, isTarget: false },
+        { id: 7, row: 5, col: 2, length: 2, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 8',
+      difficulty: 'Easy',
+      optimalMoves: 11,
+      blocks: [
+        { id: 1, row: 2, col: 0, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 2, length: 2, isHorizontal: false, isTarget: false },
+        { id: 3, row: 1, col: 3, length: 3, isHorizontal: false, isTarget: false },
+        { id: 4, row: 2, col: 4, length: 2, isHorizontal: false, isTarget: false },
+        { id: 5, row: 0, col: 0, length: 2, isHorizontal: true, isTarget: false },
+        { id: 6, row: 1, col: 0, length: 2, isHorizontal: true, isTarget: false },
+        { id: 7, row: 3, col: 1, length: 2, isHorizontal: true, isTarget: false },
+        { id: 8, row: 4, col: 3, length: 3, isHorizontal: true, isTarget: false },
+        { id: 9, row: 5, col: 0, length: 2, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 9',
+      difficulty: 'Easy',
+      optimalMoves: 10,
+      blocks: [
+        { id: 1, row: 2, col: 1, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 1, length: 2, isHorizontal: false, isTarget: false },
+        { id: 3, row: 2, col: 0, length: 2, isHorizontal: false, isTarget: false },
+        { id: 4, row: 1, col: 3, length: 2, isHorizontal: false, isTarget: false },
+        { id: 5, row: 0, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 6, row: 3, col: 2, length: 3, isHorizontal: true, isTarget: false },
+        { id: 7, row: 4, col: 1, length: 2, isHorizontal: true, isTarget: false },
+        { id: 8, row: 5, col: 3, length: 2, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 10',
+      difficulty: 'Easy',
+      optimalMoves: 13,
+      blocks: [
+        { id: 1, row: 2, col: 0, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 0, length: 3, isHorizontal: false, isTarget: false },
+        { id: 3, row: 1, col: 2, length: 2, isHorizontal: false, isTarget: false },
+        { id: 4, row: 0, col: 3, length: 3, isHorizontal: false, isTarget: false },
+        { id: 5, row: 3, col: 4, length: 2, isHorizontal: false, isTarget: false },
+        { id: 6, row: 1, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 7, row: 3, col: 0, length: 2, isHorizontal: true, isTarget: false },
+        { id: 8, row: 4, col: 2, length: 2, isHorizontal: true, isTarget: false },
+        { id: 9, row: 5, col: 0, length: 3, isHorizontal: true, isTarget: false },
+      ],
+    },
+    // Hard Levels (11-20)
+    {
+      name: 'Level 11',
+      difficulty: 'Hard',
+      optimalMoves: 15,
+      blocks: [
+        { id: 1, row: 2, col: 2, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 2, col: 0, length: 2, isHorizontal: false, isTarget: false },
+        { id: 3, row: 2, col: 1, length: 2, isHorizontal: false, isTarget: false },
+        { id: 4, row: 0, col: 2, length: 2, isHorizontal: false, isTarget: false },
+        { id: 11, row: 0, col: 5, length: 3, isHorizontal: false, isTarget: false },
+        { id: 12, row: 4, col: 2, length: 2, isHorizontal: false, isTarget: false },
+        { id: 5, row: 1, col: 3, length: 2, isHorizontal: true, isTarget: false },
+        { id: 6, row: 3, col: 2, length: 2, isHorizontal: true, isTarget: false },
+        { id: 7, row: 3, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 8, row: 4, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 9, row: 5, col: 0, length: 2, isHorizontal: true, isTarget: false },
+        { id: 10, row: 5, col: 3, length: 3, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 12',
+      difficulty: 'Hard',
+      optimalMoves: 18,
+      blocks: [
+        { id: 1, row: 2, col: 3, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 5, length: 3, isHorizontal: false, isTarget: false },
+        { id: 3, row: 2, col: 2, length: 2, isHorizontal: false, isTarget: false },
+        { id: 4, row: 3, col: 3, length: 3, isHorizontal: false, isTarget: false },
+        { id: 5, row: 1, col: 1, length: 3, isHorizontal: true, isTarget: false },
+        { id: 6, row: 3, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 7, row: 4, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 8, row: 5, col: 0, length: 3, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 13',
+      difficulty: 'Hard',
+      optimalMoves: 16,
+      blocks: [
+        { id: 1, row: 2, col: 0, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 1, length: 2, isHorizontal: false, isTarget: false },
+        { id: 3, row: 2, col: 4, length: 2, isHorizontal: false, isTarget: false },
+        { id: 4, row: 2, col: 5, length: 2, isHorizontal: false, isTarget: false },
+        { id: 7, row: 2, col: 3, length: 3, isHorizontal: false, isTarget: false },
+        { id: 8, row: 3, col: 1, length: 2, isHorizontal: false, isTarget: false },
+        { id: 9, row: 4, col: 5, length: 2, isHorizontal: false, isTarget: false },
+        { id: 5, row: 1, col: 2, length: 2, isHorizontal: true, isTarget: false },
+        { id: 6, row: 1, col: 4, length: 2, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 14',
+      difficulty: 'Hard',
+      optimalMoves: 17,
+      blocks: [
+        { id: 1, row: 2, col: 1, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 0, length: 3, isHorizontal: false, isTarget: false },
+        { id: 3, row: 1, col: 1, length: 3, isHorizontal: false, isTarget: false },
+        { id: 4, row: 0, col: 2, length: 2, isHorizontal: false, isTarget: false },
+        { id: 5, row: 0, col: 3, length: 3, isHorizontal: false, isTarget: false },
+        { id: 6, row: 3, col: 4, length: 3, isHorizontal: false, isTarget: false },
+        { id: 7, row: 1, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 8, row: 4, col: 0, length: 2, isHorizontal: true, isTarget: false },
+        { id: 9, row: 5, col: 2, length: 2, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 15',
+      difficulty: 'Hard',
+      optimalMoves: 19,
+      blocks: [
+        { id: 1, row: 2, col: 0, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 2, length: 3, isHorizontal: false, isTarget: false },
+        { id: 3, row: 1, col: 3, length: 2, isHorizontal: false, isTarget: false },
+        { id: 4, row: 2, col: 4, length: 3, isHorizontal: false, isTarget: false },
+        { id: 5, row: 0, col: 0, length: 2, isHorizontal: true, isTarget: false },
+        { id: 6, row: 1, col: 0, length: 2, isHorizontal: true, isTarget: false },
+        { id: 7, row: 3, col: 1, length: 3, isHorizontal: true, isTarget: false },
+        { id: 8, row: 4, col: 0, length: 2, isHorizontal: true, isTarget: false },
+        { id: 9, row: 5, col: 2, length: 2, isHorizontal: true, isTarget: false },
+        { id: 10, row: 5, col: 5, length: 2, isHorizontal: false, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 16',
+      difficulty: 'Hard',
+      optimalMoves: 20,
+      blocks: [
+        { id: 1, row: 2, col: 2, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 0, length: 2, isHorizontal: false, isTarget: false },
+        { id: 3, row: 0, col: 1, length: 3, isHorizontal: false, isTarget: false },
+        { id: 4, row: 1, col: 2, length: 2, isHorizontal: false, isTarget: false },
+        { id: 5, row: 0, col: 3, length: 2, isHorizontal: false, isTarget: false },
+        { id: 6, row: 3, col: 4, length: 3, isHorizontal: false, isTarget: false },
+        { id: 7, row: 0, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 8, row: 3, col: 0, length: 3, isHorizontal: true, isTarget: false },
+        { id: 9, row: 4, col: 0, length: 2, isHorizontal: true, isTarget: false },
+        { id: 10, row: 5, col: 1, length: 3, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 17',
+      difficulty: 'Hard',
+      optimalMoves: 21,
+      blocks: [
+        { id: 1, row: 2, col: 1, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 1, length: 2, isHorizontal: false, isTarget: false },
+        { id: 3, row: 2, col: 0, length: 3, isHorizontal: false, isTarget: false },
+        { id: 4, row: 1, col: 2, length: 3, isHorizontal: false, isTarget: false },
+        { id: 5, row: 0, col: 3, length: 2, isHorizontal: false, isTarget: false },
+        { id: 6, row: 1, col: 4, length: 2, isHorizontal: false, isTarget: false },
+        { id: 7, row: 3, col: 5, length: 3, isHorizontal: false, isTarget: false },
+        { id: 8, row: 0, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 9, row: 3, col: 2, length: 2, isHorizontal: true, isTarget: false },
+        { id: 10, row: 4, col: 0, length: 2, isHorizontal: true, isTarget: false },
+        { id: 11, row: 5, col: 2, length: 3, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 18',
+      difficulty: 'Hard',
+      optimalMoves: 22,
+      blocks: [
+        { id: 1, row: 2, col: 0, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 0, length: 2, isHorizontal: false, isTarget: false },
+        { id: 3, row: 1, col: 1, length: 2, isHorizontal: false, isTarget: false },
+        { id: 4, row: 0, col: 2, length: 3, isHorizontal: false, isTarget: false },
+        { id: 5, row: 1, col: 3, length: 2, isHorizontal: false, isTarget: false },
+        { id: 6, row: 2, col: 4, length: 2, isHorizontal: false, isTarget: false },
+        { id: 7, row: 3, col: 0, length: 2, isHorizontal: false, isTarget: false },
+        { id: 8, row: 4, col: 5, length: 2, isHorizontal: false, isTarget: false },
+        { id: 9, row: 1, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 10, row: 3, col: 2, length: 2, isHorizontal: true, isTarget: false },
+        { id: 11, row: 4, col: 1, length: 2, isHorizontal: true, isTarget: false },
+        { id: 12, row: 5, col: 0, length: 2, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 19',
+      difficulty: 'Hard',
+      optimalMoves: 23,
+      blocks: [
+        { id: 1, row: 2, col: 2, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 1, length: 3, isHorizontal: false, isTarget: false },
+        { id: 3, row: 1, col: 2, length: 2, isHorizontal: false, isTarget: false },
+        { id: 4, row: 0, col: 3, length: 2, isHorizontal: false, isTarget: false },
+        { id: 5, row: 2, col: 4, length: 3, isHorizontal: false, isTarget: false },
+        { id: 6, row: 3, col: 0, length: 3, isHorizontal: false, isTarget: false },
+        { id: 7, row: 0, col: 4, length: 2, isHorizontal: true, isTarget: false },
+        { id: 8, row: 1, col: 3, length: 2, isHorizontal: true, isTarget: false },
+        { id: 9, row: 3, col: 3, length: 2, isHorizontal: true, isTarget: false },
+        { id: 10, row: 4, col: 1, length: 2, isHorizontal: true, isTarget: false },
+        { id: 11, row: 5, col: 3, length: 3, isHorizontal: true, isTarget: false },
+      ],
+    },
+    {
+      name: 'Level 20',
+      difficulty: 'Hard',
+      optimalMoves: 25,
+      blocks: [
+        { id: 1, row: 2, col: 1, length: 2, isHorizontal: true, isTarget: true },
+        { id: 2, row: 0, col: 0, length: 3, isHorizontal: false, isTarget: false },
+        { id: 3, row: 1, col: 1, length: 2, isHorizontal: false, isTarget: false },
+        { id: 4, row: 0, col: 2, length: 2, isHorizontal: false, isTarget: false },
+        { id: 5, row: 2, col: 0, length: 2, isHorizontal: false, isTarget: false },
+        { id: 6, row: 0, col: 3, length: 3, isHorizontal: false, isTarget: false },
+        { id: 7, row: 1, col: 4, length: 3, isHorizontal: false, isTarget: false },
+        { id: 8, row: 3, col: 5, length: 3, isHorizontal: false, isTarget: false },
+        { id: 9, row: 3, col: 1, length: 2, isHorizontal: true, isTarget: false },
+        { id: 10, row: 4, col: 0, length: 2, isHorizontal: true, isTarget: false },
+        { id: 11, row: 4, col: 3, length: 2, isHorizontal: true, isTarget: false },
+        { id: 12, row: 5, col: 1, length: 2, isHorizontal: true, isTarget: false },
+      ],
+    },
+  ];
+
+  const selectedLevels = useMemo(() => {
+    if (isTrialMode) {
+      // Trial mode: Pick 3 random levels from all 20
+      const shuffled = [...allLevels].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, 3);
+    } else {
+      // Actual game: Pick 17 random levels from all 20
+      const shuffled = [...allLevels].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, 17);
+    }
+  }, [isTrialMode]);
 
   useEffect(() => {
-    setBlocks(generatePuzzle(level - 1));
-    setMoves(0);
-    setSelectedBlock(null);
-  }, [level, generatePuzzle, refreshKey]);
+    loadLevel(0);
+    hasInitializedRef.current = true;
+  }, []);
 
+  // Handle time running out
   useEffect(() => {
-    if (timeRemaining === 0 && !isTrialMode) {
+    if (timeRemaining === 0 && !isTrialMode && !hasCompletedRef.current) {
+      hasCompletedRef.current = true;
       onComplete(puzzlesCompleted, totalMoves);
     }
-  }, [timeRemaining, puzzlesCompleted, totalMoves, onComplete, isTrialMode]);
+  }, [timeRemaining, isTrialMode, puzzlesCompleted, totalMoves, onComplete]);
 
-  const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
-    setMoves(0);
-    setSelectedBlock(null);
-  };
+  // Handle game completion
+  useEffect(() => {
+    if (allLevelsComplete && !hasCompletedRef.current) {
+      hasCompletedRef.current = true;
+      // Pass the number of levels completed (puzzlesCompleted) and total moves
+      onComplete(puzzlesCompleted, totalMoves);
+    }
+  }, [allLevelsComplete, puzzlesCompleted, totalMoves, onComplete]);
 
-  const canMoveBlock = (block: Block, newRow: number, newCol: number): boolean => {
-    const grid: boolean[][] = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(false));
-    
-    // Fill grid with all blocks except the one being moved
-    blocks.forEach(b => {
-      if (b.id !== block.id) {
-        if (b.orientation === 'horizontal') {
-          for (let i = 0; i < b.length; i++) {
-            if (b.row >= 0 && b.row < GRID_SIZE && b.col + i >= 0 && b.col + i < GRID_SIZE) {
-              grid[b.row][b.col + i] = true;
-            }
-          }
-        } else {
-          for (let i = 0; i < b.length; i++) {
-            if (b.row + i >= 0 && b.row + i < GRID_SIZE && b.col >= 0 && b.col < GRID_SIZE) {
-              grid[b.row + i][b.col] = true;
-            }
-          }
-        }
-      }
-    });
-
-    // Check if new position is valid
-    if (block.orientation === 'horizontal') {
-      if (newCol < 0 || newCol + block.length > GRID_SIZE) return false;
-      for (let i = 0; i < block.length; i++) {
-        if (grid[newRow][newCol + i]) return false;
-      }
-    } else {
-      if (newRow < 0 || newRow + block.length > GRID_SIZE) return false;
-      for (let i = 0; i < block.length; i++) {
-        if (grid[newRow + i][newCol]) return false;
-      }
+  const loadLevel = (levelIndex: number) => {
+    if (levelIndex >= selectedLevels.length) {
+      setAllLevelsComplete(true);
+      return;
     }
 
+    const lvl = selectedLevels[levelIndex];
+    if (!isLayoutValid(lvl.blocks)) {
+      console.error(`Level ${levelIndex + 1} has an invalid layout (overlap or OOB).`);
+    }
+
+    setBlocks(lvl.blocks.map((b) => ({ ...b })));
+    setMoves(0);
+    setLevelComplete(false);
+    setCurrentLevel(levelIndex);
+    setLevelStartTime(timeRemaining);
+  };
+
+  const isLayoutValid = (bks: Block[]) => {
+    const seen = new Set<string>();
+    for (const b of bks) {
+      for (let i = 0; i < b.length; i++) {
+        const r = b.isHorizontal ? b.row : b.row + i;
+        const c = b.isHorizontal ? b.col + i : b.col;
+        if (r < 0 || r >= GRID_SIZE || c < 0 || c >= GRID_SIZE) return false;
+        const key = `${r},${c}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+      }
+    }
     return true;
   };
 
-  const moveBlock = (blockId: number, direction: 'up' | 'down' | 'left' | 'right') => {
-    const block = blocks.find(b => b.id === blockId);
-    if (!block) return;
+  const calculateLevelScore = (levelIndex: number, movesUsed: number, timeSpent: number) => {
+    const level = selectedLevels[levelIndex];
+    const optimal = level.optimalMoves;
+    const extraMoves = Math.max(0, movesUsed - optimal);
 
-    let newRow = block.row;
-    let newCol = block.col;
+    let baseScore = level.difficulty === 'Easy' ? 40 : 60;
+    const movePenalty = extraMoves * 3;
+    const expectedTime = level.difficulty === 'Easy' ? 60 : 90;
+    const timePenalty = Math.max(0, Math.floor((timeSpent - expectedTime) / 10));
 
-    if (direction === 'up' && block.orientation === 'vertical') newRow--;
-    else if (direction === 'down' && block.orientation === 'vertical') newRow++;
-    else if (direction === 'left' && block.orientation === 'horizontal') newCol--;
-    else if (direction === 'right' && block.orientation === 'horizontal') newCol++;
-    else return;
+    const minScore = level.difficulty === 'Easy' ? 10 : 20;
+    return Math.max(baseScore - movePenalty - timePenalty, minScore);
+  };
 
-    if (canMoveBlock(block, newRow, newCol)) {
-      const newBlocks = blocks.map(b =>
-        b.id === blockId ? { ...b, row: newRow, col: newCol } : b
-      );
-      setBlocks(newBlocks);
-      setMoves(prev => prev + 1);
-      setTotalMoves(prev => prev + 1);
+  const calculateTotalScore = () => {
+    let total = 0;
+    for (let i = 0; i <= currentLevel; i++) {
+      if (levelMoves[i] > 0 || i === currentLevel) {
+        const used = i === currentLevel ? moves : levelMoves[i];
+        const timeSpent = i === currentLevel ? (levelStartTime - timeRemaining) : levelTimes[i];
+        total += calculateLevelScore(i, used, timeSpent);
+      }
+    }
+    return Math.min(Math.round(total), 100);
+  };
 
-      // Check win condition
-      const targetBlock = newBlocks.find(b => b.isTarget);
-      if (targetBlock && targetBlock.col + targetBlock.length === TARGET_EXIT_COL + 1) {
-        setTimeout(() => {
-          setPuzzlesCompleted(prev => prev + 1);
-          setLevel(prev => prev + 1);
-        }, 500);
+  const checkWin = (currentBlocks: Block[]) => {
+    const target = currentBlocks.find((b) => b.isTarget);
+    if (target && target.col === GRID_SIZE - target.length) {
+      setLevelComplete(true);
+      setPuzzlesCompleted(prev => prev + 1);
+
+      const newLevelMoves = [...levelMoves];
+      newLevelMoves[currentLevel] = moves;
+      setLevelMoves(newLevelMoves);
+
+      const timeSpent = levelStartTime - timeRemaining;
+      const newLevelTimes = [...levelTimes];
+      newLevelTimes[currentLevel] = timeSpent;
+      setLevelTimes(newLevelTimes);
+
+      const newScore = calculateTotalScore();
+      setScore(newScore);
+
+      if (currentLevel < selectedLevels.length - 1) {
+        setTimeout(() => loadLevel(currentLevel + 1), 2500);
+      } else {
+        setAllLevelsComplete(true);
       }
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (selectedBlock === null) return;
-    
-    e.preventDefault();
-    if (e.key === 'ArrowUp') moveBlock(selectedBlock, 'up');
-    else if (e.key === 'ArrowDown') moveBlock(selectedBlock, 'down');
-    else if (e.key === 'ArrowLeft') moveBlock(selectedBlock, 'left');
-    else if (e.key === 'ArrowRight') moveBlock(selectedBlock, 'right');
-  };
+  const canMoveBlock = (block: Block, newRow: number, newCol: number): boolean => {
+    if (block.isHorizontal) {
+      if (newCol < 0 || newCol + block.length > GRID_SIZE) return false;
+    } else {
+      if (newRow < 0 || newRow + block.length > GRID_SIZE) return false;
+    }
 
-  const renderGrid = () => {
-    const grid: React.ReactNode[][] = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+    for (let other of blocks) {
+      if (other.id === block.id) continue;
 
-    // Mark exit
-    grid[TARGET_ROW][TARGET_EXIT_COL] = (
-      <div className="w-full h-full bg-green-200 border-2 border-green-500 flex items-center justify-center text-xs font-bold">
-        EXIT
-      </div>
-    );
+      for (let i = 0; i < block.length; i++) {
+        const checkRow = block.isHorizontal ? newRow : newRow + i;
+        const checkCol = block.isHorizontal ? newCol + i : newCol;
 
-    blocks.forEach(block => {
-      if (block.orientation === 'horizontal') {
-        for (let i = 0; i < block.length; i++) {
-          grid[block.row][block.col + i] = (
-            <div
-              className={`w-full h-full ${block.color} ${selectedBlock === block.id ? 'ring-4 ring-white' : ''} cursor-pointer flex items-center justify-center text-white font-bold text-xs`}
-              onClick={() => setSelectedBlock(block.id)}
-            >
-              {i === 0 && block.isTarget && <Car className="w-6 h-6" />}
-            </div>
-          );
-        }
-      } else {
-        for (let i = 0; i < block.length; i++) {
-          grid[block.row + i][block.col] = (
-            <div
-              className={`w-full h-full ${block.color} ${selectedBlock === block.id ? 'ring-4 ring-white' : ''} cursor-pointer`}
-              onClick={() => setSelectedBlock(block.id)}
-            />
-          );
+        for (let j = 0; j < other.length; j++) {
+          const otherRow = other.isHorizontal ? other.row : other.row + j;
+          const otherCol = other.isHorizontal ? other.col + j : other.col;
+
+          if (checkRow === otherRow && checkCol === otherCol) {
+            return false;
+          }
         }
       }
-    });
-
-    return grid;
+    }
+    return true;
   };
 
-  const gridCells = renderGrid();
+  const handleMouseDown = (id: number, e: React.MouseEvent) => {
+    if (levelComplete || allLevelsComplete) return;
+
+    const block = blocks.find((b) => b.id === id);
+    if (!block) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    setDraggedBlock(id);
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+    setTempPosition({ row: block.row, col: block.col });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (draggedBlock === null || !gridRef.current) return;
+
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+
+    rafRef.current = requestAnimationFrame(() => {
+      const block = blocks.find((b) => b.id === draggedBlock);
+      if (!block) return;
+
+      const gridRect = gridRef.current!.getBoundingClientRect();
+      const x = e.clientX - gridRect.left - dragOffset.x;
+      const y = e.clientY - gridRect.top - dragOffset.y;
+
+      let newRow = block.row;
+      let newCol = block.col;
+
+      if (block.isHorizontal) {
+        newCol = Math.round(x / CELL_SIZE);
+        newCol = Math.max(0, Math.min(GRID_SIZE - block.length, newCol));
+      } else {
+        newRow = Math.round(y / CELL_SIZE);
+        newRow = Math.max(0, Math.min(GRID_SIZE - block.length, newRow));
+      }
+
+      if (canMoveBlock(block, newRow, newCol)) {
+        setTempPosition({ row: newRow, col: newCol });
+      }
+    });
+  };
+
+  const handleMouseUp = () => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
+    if (draggedBlock === null || tempPosition === null) return;
+
+    const block = blocks.find((b) => b.id === draggedBlock);
+    if (!block) return;
+
+    if (block.row !== tempPosition.row || block.col !== tempPosition.col) {
+      const newBlocks = blocks.map((b) =>
+        b.id === draggedBlock ? { ...b, row: tempPosition.row, col: tempPosition.col } : b
+      );
+      setBlocks(newBlocks);
+      setMoves((m) => m + 1);
+      setTotalMoves((t) => t + 1);
+      checkWin(newBlocks);
+    }
+
+    setDraggedBlock(null);
+    setTempPosition(null);
+  };
+
+  const getBlockPosition = (b: Block) => {
+    if (draggedBlock === b.id && tempPosition) {
+      return {
+        top: tempPosition.row * CELL_SIZE,
+        left: tempPosition.col * CELL_SIZE,
+      };
+    }
+    return {
+      top: b.row * CELL_SIZE,
+      left: b.col * CELL_SIZE,
+    };
+  };
+
+  const getBlockColor = (b: Block) => {
+    if (b.isTarget) return 'bg-gradient-to-br from-red-500 to-red-600';
+
+    const colors = [
+      'bg-gradient-to-br from-blue-500 to-blue-600',
+      'bg-gradient-to-br from-purple-500 to-purple-600',
+      'bg-gradient-to-br from-green-500 to-green-600',
+      'bg-gradient-to-br from-orange-500 to-orange-600',
+      'bg-gradient-to-br from-pink-500 to-pink-600',
+      'bg-gradient-to-br from-indigo-500 to-indigo-600',
+      'bg-gradient-to-br from-cyan-500 to-cyan-600',
+      'bg-gradient-to-br from-emerald-500 to-emerald-600',
+    ];
+    return colors[b.id % colors.length];
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="min-h-screen bg-gradient-to-br from-[#f3f0fc] via-[#faf9fc] to-[#f3f0fc] flex flex-col items-center justify-center p-6 relative overflow-hidden"
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
+      className="min-h-screen playful-gradient p-4 relative overflow-hidden"
     >
       {/* Animated Background Orbs */}
       <div className="absolute -z-10 top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
@@ -394,14 +668,6 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
           }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
           className="absolute w-80 h-80 bg-[#b18aff]/20 rounded-full blur-3xl bottom-10 -right-20"
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.15, 0.25, 0.15],
-          }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute w-72 h-72 bg-[#8558ed]/15 rounded-full blur-3xl top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
         />
       </div>
 
@@ -436,241 +702,321 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
       >
         <Star className="w-7 h-7 text-[#8558ed]/30" />
       </motion.div>
-      <motion.div
-        animate={{
-          y: [0, 18, 0],
-          rotate: [0, -12, 0],
-        }}
-        transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-        className="absolute bottom-32 right-24 pointer-events-none"
-      >
-        <Target className="w-9 h-9 text-[#b18aff]/30" />
-      </motion.div>
 
-      {/* Header */}
-      <motion.div
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.2 }}
-        className="text-center mb-8"
-      >
-        <motion.h1
-          className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#8558ed] via-[#b18aff] to-[#8558ed] 
-           animate-gradient-x drop-shadow-[0_0_25px_rgba(133,88,237,0.3)] tracking-tight mb-2 flex items-center justify-center gap-3"
-        >
-          <Car className="w-12 h-12 text-[#8558ed]" />
-          Unblock Me Quest
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="text-[#8558ed]/80 font-medium flex items-center justify-center gap-2"
-        >
-          <Car className="w-5 h-5" />
-          Move blocks to free the red car!
-        </motion.p>
-      </motion.div>
-
-      {/* Stats Cards */}
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
-        className="flex items-center gap-4 mb-6 flex-wrap justify-center"
-      >
+      <div className="max-w-6xl mx-auto py-8 relative z-10">
+        {/* Header */}
         <motion.div
-          whileHover={{ scale: 1.05, y: -2 }}
-          className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl px-6 py-3 shadow-lg shadow-[#8558ed]/10"
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="text-center mb-8"
         >
-          <div className="flex items-center gap-3">
+          <motion.h1
+            className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#8558ed] via-[#b18aff] to-[#8558ed] drop-shadow-[0_0_25px_rgba(133,88,237,0.3)] tracking-tight mb-2 flex items-center justify-center gap-3"
+          >
+            <Car className="w-12 h-12 text-[#8558ed]" />
+            Unblock Me Quest
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-[#8558ed]/80 font-medium flex items-center justify-center gap-2"
+          >
+            <Car className="w-5 h-5" />
+            Move blocks to free the red car!
+          </motion.p>
+        </motion.div>
+
+        {/* Stats Cards */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="flex items-center gap-4 mb-6 flex-wrap justify-center"
+        >
+          <motion.div
+            whileHover={{ scale: 1.05, y: -2 }}
+            className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl px-6 py-3 shadow-lg shadow-[#8558ed]/10"
+          >
+            <div className="flex items-center gap-3">
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="bg-gradient-to-tr from-[#8558ed] to-[#b18aff] w-10 h-10 rounded-full flex items-center justify-center"
+              >
+                <Trophy className="w-5 h-5 text-white" />
+              </motion.div>
+              <div>
+                <div className="text-xs text-[#030303]/60 font-medium">{selectedLevels[currentLevel]?.name} - {selectedLevels[currentLevel]?.difficulty}</div>
+                <div className="text-2xl font-bold text-[#8558ed]">Level {currentLevel + 1}</div>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.05, y: -2 }}
+            className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl px-6 py-3 shadow-lg shadow-[#8558ed]/10"
+          >
+            <div className="flex items-center gap-3">
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="bg-gradient-to-tr from-green-500 to-emerald-500 w-10 h-10 rounded-full flex items-center justify-center"
+              >
+                <Star className="w-5 h-5 text-white" />
+              </motion.div>
+              <div>
+                <div className="text-xs text-[#030303]/60 font-medium">Score</div>
+                <div className="text-2xl font-bold text-green-600">{score}<span className="text-lg text-gray-400">/100</span></div>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.05, y: -2 }}
+            className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl px-6 py-3 shadow-lg shadow-[#8558ed]/10"
+          >
+            <div className="flex items-center gap-3">
+              <motion.div
+                animate={{ rotate: [0, -10, 10, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="bg-gradient-to-tr from-blue-500 to-cyan-500 w-10 h-10 rounded-full flex items-center justify-center"
+              >
+                <Target className="w-5 h-5 text-white" />
+              </motion.div>
+              <div>
+                <div className="text-xs text-[#030303]/60 font-medium">Moves</div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {moves}
+                  {moves > selectedLevels[currentLevel]?.optimalMoves && (
+                    <span className="text-lg text-orange-500 ml-1">
+                      (+{moves - selectedLevels[currentLevel]?.optimalMoves})
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Level Progress */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.35 }}
+          className="mb-6 flex items-center gap-3 max-w-2xl mx-auto"
+        >
+          {selectedLevels.map((level, index) => (
+            <div key={index} className="flex-1">
+              <div
+                className={`h-3 rounded-full transition-all duration-500 ${
+                  index < currentLevel
+                    ? 'bg-gradient-to-r from-green-500 to-green-600 shadow-md'
+                    : index === currentLevel
+                    ? 'bg-gradient-to-r from-[#8558ed] to-[#b18aff] shadow-lg'
+                    : 'bg-gray-300'
+                }`}
+              />
+              <p className="mt-1 text-center text-xs font-medium text-[#030303]/60">{level.name}</p>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Level Complete Animation */}
+        <AnimatePresence>
+          {levelComplete && (
             <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="bg-gradient-to-tr from-[#8558ed] to-[#b18aff] w-10 h-10 rounded-full flex items-center justify-center"
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              exit={{ scale: 0, rotate: 180 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+              className="mb-4 flex justify-center"
             >
-              <Trophy className="w-5 h-5 text-white" />
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 0.6, repeat: Infinity }}
+                className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-8 py-4 rounded-2xl shadow-2xl shadow-green-500/30 flex items-center gap-3"
+              >
+                <motion.span
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                >
+                  <Sparkles className="w-8 h-8" />
+                </motion.span>
+                <span className="text-2xl font-bold">Level Complete!</span>
+                <motion.span
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 0.5, repeat: Infinity }}
+                >
+                  <CheckCircle2 className="w-8 h-8" />
+                </motion.span>
+              </motion.div>
             </motion.div>
-            <div>
-              <div className="text-xs text-[#030303]/60 font-medium">Level</div>
-              <div className="text-2xl font-bold text-[#8558ed]">{level}</div>
-            </div>
-          </div>
-        </motion.div>
+          )}
+        </AnimatePresence>
 
-        <motion.div
-          whileHover={{ scale: 1.05, y: -2 }}
-          className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl px-6 py-3 shadow-lg shadow-[#8558ed]/10"
-        >
-          <div className="flex items-center gap-3">
-            <motion.div
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="bg-gradient-to-tr from-green-500 to-emerald-500 w-10 h-10 rounded-full flex items-center justify-center"
-            >
-              <Star className="w-5 h-5 text-white" />
-            </motion.div>
-            <div>
-              <div className="text-xs text-[#030303]/60 font-medium">Completed</div>
-              <div className="text-2xl font-bold text-green-600">{puzzlesCompleted}</div>
+        {/* Game Board and Instructions Side by Side */}
+        <div className="flex items-start gap-8 justify-center">
+          {/* Instructions - Left Side */}
+          <motion.div
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="w-64"
+          >
+            <div className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-6 shadow-lg shadow-[#8558ed]/10 sticky top-8">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <Target className="w-5 h-5 text-[#8558ed]" />
+                <h3 className="text-lg font-bold text-[#8558ed]">How to Play</h3>
+              </div>
+              <div className="space-y-2 text-sm text-[#030303]/70">
+                <p className="flex items-center gap-2">
+                  <MousePointer className="w-5 h-5 text-[#8558ed]" />
+                  <span><strong>Click a block</strong> to select it</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <Keyboard className="w-5 h-5 text-[#8558ed]" />
+                  <span><strong>Drag blocks</strong> to move them</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <Car className="w-5 h-5 text-[#8558ed]" />
+                  <span><strong>Move the red car</strong> to the exit!</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-[#8558ed]" />
+                  <span>Complete in <strong>≤{selectedLevels[currentLevel]?.optimalMoves} moves</strong></span>
+                </p>
+              </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        <motion.div
-          whileHover={{ scale: 1.05, y: -2 }}
-          className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl px-6 py-3 shadow-lg shadow-[#8558ed]/10"
-        >
-          <div className="flex items-center gap-3">
-            <motion.div
-              animate={{ rotate: [0, -10, 10, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="bg-gradient-to-tr from-blue-500 to-cyan-500 w-10 h-10 rounded-full flex items-center justify-center"
-            >
-              <Target className="w-5 h-5 text-white" />
-            </motion.div>
-            <div>
-              <div className="text-xs text-[#030303]/60 font-medium">Moves</div>
-              <div className="text-2xl font-bold text-blue-600">{moves}</div>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-
-      {/* Game Board and Instructions Side by Side */}
-      <div className="flex items-start gap-8 justify-center">
-        {/* Instructions - Left Side */}
-        <motion.div
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="w-64"
-        >
-          <div className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-6 shadow-lg shadow-[#8558ed]/10 sticky top-8">
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <Target className="w-5 h-5 text-[#8558ed]" />
-              <h3 className="text-lg font-bold text-[#8558ed]">How to Play</h3>
-            </div>
-            <div className="space-y-2 text-sm text-[#030303]/70">
-              <p className="flex items-center gap-2">
-                <MousePointer className="w-5 h-5 text-[#8558ed]" />
-                <span><strong>Click a block</strong> to select it</span>
-              </p>
-              <p className="flex items-center gap-2">
-                <Keyboard className="w-5 h-5 text-[#8558ed]" />
-                <span><strong>Use arrow keys</strong> or buttons to move</span>
-              </p>
-              <p className="flex items-center gap-2">
-                <Car className="w-5 h-5 text-[#8558ed]" />
-                <span><strong>Move the red car</strong> to the exit!</span>
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Game Board and Controls - Right Side */}
-        <div className="flex flex-col items-center gap-6">
-          {/* Game Board */}
+          {/* Game Board - Right Side */}
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-3xl p-6 shadow-2xl shadow-[#8558ed]/20"
           >
-            <div className="grid grid-cols-6 gap-1.5 p-4 bg-gradient-to-br from-[#8558ed]/10 to-[#b18aff]/10 rounded-2xl" style={{ width: '400px', height: '400px' }}>
-              {gridCells.map((row, rowIndex) =>
-                row.map((cell, colIndex) => (
-                  <motion.div
-                    key={`${rowIndex}-${colIndex}`}
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ 
-                      delay: (rowIndex * 6 + colIndex) * 0.01,
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 20
-                    }}
-                    className="bg-gradient-to-br from-white/60 to-gray-100/60 border-2 border-white/40 rounded-lg overflow-hidden"
-                  >
-                    {cell || <div className="w-full h-full" />}
-                  </motion.div>
-                ))
-              )}
+            <div
+              className="relative"
+              style={{
+                width: GRID_SIZE * CELL_SIZE + 48 + 40 + 8,
+                height: GRID_SIZE * CELL_SIZE + 48,
+              }}
+            >
+              <div
+                ref={gridRef}
+                className="absolute rounded-2xl bg-gradient-to-br from-amber-100 via-amber-50 to-yellow-100 p-6 shadow-2xl shadow-[#8558ed]/20 overflow-hidden border-2 border-white/40"
+                style={{
+                  width: GRID_SIZE * CELL_SIZE + 48,
+                  height: GRID_SIZE * CELL_SIZE + 48,
+                  left: 0,
+                  top: 0,
+                }}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+              >
+                {/* Grid cells */}
+                <div
+                  className="absolute inset-6 grid"
+                  style={{
+                    gridTemplateColumns: `repeat(${GRID_SIZE}, ${CELL_SIZE}px)`,
+                    gridTemplateRows: `repeat(${GRID_SIZE}, ${CELL_SIZE}px)`,
+                  }}
+                >
+                  {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => (
+                    <div key={i} className="border border-amber-300/40" />
+                  ))}
+                </div>
+
+                {/* Blocks */}
+                {blocks.map((block) => {
+                  const position = getBlockPosition(block);
+                  const isDragging = draggedBlock === block.id;
+
+                  return (
+                    <motion.div
+                      key={block.id}
+                      onMouseDown={(e) => handleMouseDown(block.id, e)}
+                      whileHover={{ scale: isDragging ? 1 : 1.02 }}
+                      className={`absolute rounded-xl shadow-lg cursor-grab active:cursor-grabbing select-none ${getBlockColor(
+                        block
+                      )} ${isDragging ? 'shadow-2xl z-30 ring-4 ring-white/50' : 'hover:shadow-xl z-10'}`}
+                      style={{
+                        top: position.top + 24,
+                        left: position.left + 24,
+                        width: block.isHorizontal ? block.length * CELL_SIZE : CELL_SIZE,
+                        height: block.isHorizontal ? CELL_SIZE : block.length * CELL_SIZE,
+                        transition: 'top 80ms ease-out, left 80ms ease-out',
+                      }}
+                    >
+                      <div className="flex h-full w-full items-center justify-center">
+                        {block.isTarget ? (
+                          <motion.svg
+                            animate={{ rotate: [0, -5, 5, 0] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className="h-12 w-12 text-white drop-shadow-2xl"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                            <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
+                          </motion.svg>
+                        ) : (
+                          <div className="flex gap-1.5">
+                            {block.isHorizontal ? (
+                              <>
+                                <div className="h-2.5 w-2.5 rounded-full bg-white/70 shadow-sm" />
+                                <div className="h-2.5 w-2.5 rounded-full bg-white/70 shadow-sm" />
+                              </>
+                            ) : (
+                              <div className="flex flex-col gap-1.5">
+                                <div className="h-2.5 w-2.5 rounded-full bg-white/70 shadow-sm" />
+                                <div className="h-2.5 w-2.5 rounded-full bg-white/70 shadow-sm" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Exit indicator */}
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="absolute flex items-center justify-center bg-gradient-to-r from-green-500 to-emerald-500 rounded-r-xl shadow-xl z-50"
+                style={{
+                  left: GRID_SIZE * CELL_SIZE + 48 + 8,
+                  top: 24 + 2 * CELL_SIZE + (CELL_SIZE - 80) / 2,
+                  width: 40,
+                  height: 80,
+                }}
+                aria-label="Exit"
+              >
+                <motion.svg
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  className="h-8 w-8 text-white drop-shadow-lg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3}
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  />
+                </motion.svg>
+              </motion.div>
             </div>
-          </motion.div>
-
-          {/* Refresh Button */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.45 }}
-            className="flex justify-center mb-4"
-          >
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                onClick={handleRefresh}
-                className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 font-semibold"
-              >
-                <RefreshCw className="w-5 h-5" />
-                Refresh Puzzle
-              </Button>
-            </motion.div>
-          </motion.div>
-
-          {/* Control Buttons */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="flex gap-3"
-          >
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Button
-                onClick={() => selectedBlock !== null && moveBlock(selectedBlock, 'up')}
-                disabled={selectedBlock === null}
-                className="w-14 h-14 bg-gradient-to-br from-[#8558ed] to-[#b18aff] hover:from-[#7347d6] hover:to-[#a179f0] text-white text-2xl font-bold rounded-xl shadow-lg disabled:opacity-50"
-              >
-                ↑
-              </Button>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Button
-                onClick={() => selectedBlock !== null && moveBlock(selectedBlock, 'down')}
-                disabled={selectedBlock === null}
-                className="w-14 h-14 bg-gradient-to-br from-[#8558ed] to-[#b18aff] hover:from-[#7347d6] hover:to-[#a179f0] text-white text-2xl font-bold rounded-xl shadow-lg disabled:opacity-50"
-              >
-                ↓
-              </Button>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Button
-                onClick={() => selectedBlock !== null && moveBlock(selectedBlock, 'left')}
-                disabled={selectedBlock === null}
-                className="w-14 h-14 bg-gradient-to-br from-[#8558ed] to-[#b18aff] hover:from-[#7347d6] hover:to-[#a179f0] text-white text-2xl font-bold rounded-xl shadow-lg disabled:opacity-50"
-              >
-                ←
-              </Button>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Button
-                onClick={() => selectedBlock !== null && moveBlock(selectedBlock, 'right')}
-                disabled={selectedBlock === null}
-                className="w-14 h-14 bg-gradient-to-br from-[#8558ed] to-[#b18aff] hover:from-[#7347d6] hover:to-[#a179f0] text-white text-2xl font-bold rounded-xl shadow-lg disabled:opacity-50"
-              >
-                →
-              </Button>
-            </motion.div>
           </motion.div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes gradient-x {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        .animate-gradient-x { background-size: 200% 200%; animation: gradient-x 5s ease infinite; }
-      `}</style>
     </motion.div>
   );
 };

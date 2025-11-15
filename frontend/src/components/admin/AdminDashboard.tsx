@@ -21,7 +21,7 @@ export const AdminDashboard: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'candidates' | 'leaderboard' | 'insights'>('overview');
-  const [sortBy, setSortBy] = useState<'total' | 'minesweeper' | 'waterCapacity'>('total');
+  const [sortBy, setSortBy] = useState<'total' | 'unblockMe' | 'minesweeper' | 'waterCapacity'>('total');
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [showMessageOptions, setShowMessageOptions] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,6 +82,8 @@ export const AdminDashboard: React.FC = () => {
     )
     .sort((a, b) => {
       switch (sortBy) {
+        case 'unblockMe':
+          return b.gameScores.unblockMe - a.gameScores.unblockMe;
         case 'minesweeper':
           return b.gameScores.minesweeper - a.gameScores.minesweeper;
         case 'waterCapacity':
@@ -582,6 +584,18 @@ export const AdminDashboard: React.FC = () => {
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                       <Button
                         size="sm"
+                        onClick={() => setSortBy('unblockMe')}
+                        className={sortBy === 'unblockMe'
+                          ? 'bg-gradient-to-r from-[#8558ed] to-[#b18aff] text-white font-bold'
+                          : 'bg-white border-2 border-[#8558ed]/30 text-[#8558ed] hover:bg-[#8558ed]/10 font-bold'}
+                      >
+                        <Target className="w-4 h-4 mr-2" />
+                        Unblock Me
+                      </Button>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        size="sm"
                         onClick={() => setSortBy('minesweeper')}
                         className={sortBy === 'minesweeper'
                           ? 'bg-gradient-to-r from-[#8558ed] to-[#b18aff] text-white font-bold'
@@ -619,6 +633,13 @@ export const AdminDashboard: React.FC = () => {
                           <div className="flex items-center gap-2">
                             Total Score
                             {sortBy === 'total' && <TrendingUp className="w-4 h-4" />}
+                          </div>
+                        </th>
+                        <th className={`px-4 py-3 text-left font-bold ${sortBy === 'unblockMe' ? 'text-purple-700 bg-purple-100/50' : 'text-purple-700'}`}>
+                          <div className="flex items-center gap-2">
+                            <Target className="w-4 h-4" />
+                            Unblock Me
+                            {sortBy === 'unblockMe' && <TrendingUp className="w-4 h-4" />}
                           </div>
                         </th>
                         <th className={`px-4 py-3 text-left font-bold ${sortBy === 'minesweeper' ? 'text-game-orange-700 bg-game-orange-100/50' : 'text-game-orange-700'}`}>
@@ -682,6 +703,7 @@ export const AdminDashboard: React.FC = () => {
                               {entry.totalScore}
                             </motion.span>
                           </td>
+                          <td className="px-4 py-3 font-bold text-purple-600">{entry.gameScores.unblockMe}</td>
                           <td className="px-4 py-3 font-bold text-game-orange-600">{entry.gameScores.minesweeper}</td>
                           <td className="px-4 py-3 font-bold text-game-teal-600">{entry.gameScores.waterCapacity}</td>
                           <td className="px-4 py-3 text-xs text-gray-500 font-medium">

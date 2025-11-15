@@ -28,6 +28,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   // Calculate average scores for completed assessments
   const completedGames = assessments.filter(a => a.completedAt);
   const averageScores = {
+    unblockMe: completedGames.length > 0 
+      ? Math.round(completedGames.reduce((sum, a) => sum + (a.games['unblock-me']?.puzzlesCompleted || 0), 0) / completedGames.length)
+      : 0,
     minesweeper: completedGames.length > 0 
       ? Math.round(completedGames.reduce((sum, a) => sum + (a.games.minesweeper?.puzzlesCompleted || 0), 0) / completedGames.length)
       : 0,
@@ -124,6 +127,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
         {/* Game Performance Chart */}
         <GamePerformanceChart
+          unblockMe={averageScores.unblockMe}
           minesweeper={averageScores.minesweeper}
           waterCapacity={averageScores.waterCapacity}
         />

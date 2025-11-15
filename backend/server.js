@@ -6,7 +6,8 @@ import userRoutes from './server/routes/users.js';
 import profileRoutes from './server/routes/profiles.js';
 import assessmentRoutes from './server/routes/assessments.js';
 import leaderboardRoutes from './server/routes/leaderboard.js';
-import { errorHandler } from './server/middleware/errorHandler.js';
+import errorHandler from './server/middleware/errorHandler.js';
+
 
 dotenv.config();
 

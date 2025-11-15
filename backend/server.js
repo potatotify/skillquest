@@ -8,7 +8,6 @@ import assessmentRoutes from './server/routes/assessments.js';
 import leaderboardRoutes from './server/routes/leaderboard.js';
 import errorHandler from './server/middleware/errorHandler.js';
 
-
 dotenv.config();
 
 const app = express();
@@ -16,20 +15,50 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
-// Middleware - CORS
+// ✅ CORS Configuration - Must be BEFORE routes
 app.use(cors({
-  origin: [
-    'https://skillquest-neon.vercel.app',  // ✅ Your production frontend
-    'http://localhost:5173',               // Local development
-    'http://localhost:3000'                // Alternative local port
-  ],
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'https://skillquest-neon.vercel.app',
+      'http://localhost:5173',
+      'http://localhost:3000'
+    ];
+    
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 600 // Cache preflight for 10 minutes
 }));
 
-// Middleware - JSON parsing
+// ✅ Handle preflight requests explicitly
+app.options('*', cors());
+
+// Body parser
 app.use(express.json());
+
+// Test route
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'IFA SkillQuest API is running!',
+    status: 'OK',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy' });
+});
 
 // API Routes
 app.use('/api/users', userRoutes);
@@ -37,52 +66,24 @@ app.use('/api/profiles', profileRoutes);
 app.use('/api/assessments', assessmentRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 
-// Error handler middleware
-app.use(errorHandler);
-
-// Root route - API status
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'IFA SkillQuest API is running!',
-    status: 'OK',
-    version: '1.0.0',
-    timestamp: new Date().toISOString(),
-    endpoints: {
-      users: '/api/users',
-      profiles: '/api/profiles',
-      assessments: '/api/assessments',
-      leaderboard: '/api/leaderboard'
-    }
-  });
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString()
-  });
-});
-
 // 404 handler
-app.use((req, res) => {
+app.use((req, res, next) => {
   res.status(404).json({ 
     error: 'Not Found',
-    message: `Route ${req.url} not found`,
-    availableRoutes: ['/api/users', '/api/profiles', '/api/assessments', '/api/leaderboard']
+    message: `Route ${req.url} not found`
   });
 });
+
+// Error handler
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-// Listen only in development mode
+// Listen only in development
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
-    console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
   });
 }
 
-// Export for Vercel serverless
 export default app;

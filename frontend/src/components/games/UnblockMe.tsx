@@ -36,8 +36,8 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [moves, setMoves] = useState(0);
   const [totalMoves, setTotalMoves] = useState(0);
-  const [levelMoves, setLevelMoves] = useState<number[]>(Array(17).fill(0));
-  const [levelTimes, setLevelTimes] = useState<number[]>(Array(17).fill(0));
+  const [levelMoves, setLevelMoves] = useState<number[]>(Array(6).fill(0));
+  const [levelTimes, setLevelTimes] = useState<number[]>(Array(6).fill(0));
   const [score, setScore] = useState(0);
   const [puzzlesCompleted, setPuzzlesCompleted] = useState(0);
   const [levelComplete, setLevelComplete] = useState(false);
@@ -62,8 +62,9 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
     },
   });
 
+  // ✅ ALL 6 LEVELS - 3 Easy + 3 Hard
   const allLevels: Level[] = [
-    // Easy Levels (1-10)
+    // Easy Level 1
     {
       name: 'Level 1',
       difficulty: 'Easy',
@@ -81,6 +82,7 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
         { id: 10, row: 5, col: 2, length: 3, isHorizontal: true, isTarget: false },
       ],
     },
+    // Easy Level 2
     {
       name: 'Level 2',
       difficulty: 'Easy',
@@ -98,6 +100,7 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
         { id: 10, row: 5, col: 2, length: 2, isHorizontal: true, isTarget: false },
       ],
     },
+    // Easy Level 3
     {
       name: 'Level 3',
       difficulty: 'Easy',
@@ -116,117 +119,11 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
         { id: 8, row: 3, col: 3, length: 2, isHorizontal: true, isTarget: false },
       ],
     },
+    // Hard Level 4
     {
       name: 'Level 4',
-      difficulty: 'Easy',
-      optimalMoves: 8,
-      blocks: [
-        { id: 1, row: 2, col: 1, length: 2, isHorizontal: true, isTarget: true },
-        { id: 2, row: 0, col: 2, length: 2, isHorizontal: false, isTarget: false },
-        { id: 3, row: 2, col: 0, length: 3, isHorizontal: false, isTarget: false },
-        { id: 4, row: 1, col: 3, length: 2, isHorizontal: true, isTarget: false },
-        { id: 5, row: 3, col: 3, length: 3, isHorizontal: true, isTarget: false },
-        { id: 6, row: 4, col: 0, length: 2, isHorizontal: true, isTarget: false },
-        { id: 7, row: 5, col: 1, length: 3, isHorizontal: true, isTarget: false },
-      ],
-    },
-    {
-      name: 'Level 5',
-      difficulty: 'Easy',
-      optimalMoves: 10,
-      blocks: [
-        { id: 1, row: 2, col: 0, length: 2, isHorizontal: true, isTarget: true },
-        { id: 2, row: 0, col: 1, length: 3, isHorizontal: false, isTarget: false },
-        { id: 3, row: 1, col: 2, length: 2, isHorizontal: false, isTarget: false },
-        { id: 4, row: 0, col: 3, length: 2, isHorizontal: true, isTarget: false },
-        { id: 5, row: 1, col: 4, length: 2, isHorizontal: true, isTarget: false },
-        { id: 6, row: 3, col: 2, length: 2, isHorizontal: true, isTarget: false },
-        { id: 7, row: 4, col: 0, length: 3, isHorizontal: true, isTarget: false },
-        { id: 8, row: 5, col: 3, length: 2, isHorizontal: true, isTarget: false },
-      ],
-    },
-    {
-      name: 'Level 6',
-      difficulty: 'Easy',
-      optimalMoves: 12,
-      blocks: [
-        { id: 1, row: 2, col: 1, length: 2, isHorizontal: true, isTarget: true },
-        { id: 2, row: 0, col: 0, length: 2, isHorizontal: false, isTarget: false },
-        { id: 3, row: 1, col: 1, length: 3, isHorizontal: false, isTarget: false },
-        { id: 4, row: 0, col: 2, length: 2, isHorizontal: false, isTarget: false },
-        { id: 5, row: 3, col: 3, length: 2, isHorizontal: false, isTarget: false },
-        { id: 6, row: 0, col: 4, length: 2, isHorizontal: true, isTarget: false },
-        { id: 7, row: 1, col: 3, length: 2, isHorizontal: true, isTarget: false },
-        { id: 8, row: 4, col: 1, length: 2, isHorizontal: true, isTarget: false },
-        { id: 9, row: 5, col: 0, length: 2, isHorizontal: true, isTarget: false },
-      ],
-    },
-    {
-      name: 'Level 7',
-      difficulty: 'Easy',
-      optimalMoves: 9,
-      blocks: [
-        { id: 1, row: 2, col: 2, length: 2, isHorizontal: true, isTarget: true },
-        { id: 2, row: 1, col: 0, length: 3, isHorizontal: false, isTarget: false },
-        { id: 3, row: 0, col: 2, length: 3, isHorizontal: false, isTarget: false },
-        { id: 4, row: 3, col: 4, length: 2, isHorizontal: false, isTarget: false },
-        { id: 5, row: 0, col: 3, length: 2, isHorizontal: true, isTarget: false },
-        { id: 6, row: 3, col: 0, length: 3, isHorizontal: true, isTarget: false },
-        { id: 7, row: 5, col: 2, length: 2, isHorizontal: true, isTarget: false },
-      ],
-    },
-    {
-      name: 'Level 8',
-      difficulty: 'Easy',
-      optimalMoves: 11,
-      blocks: [
-        { id: 1, row: 2, col: 0, length: 2, isHorizontal: true, isTarget: true },
-        { id: 2, row: 0, col: 2, length: 2, isHorizontal: false, isTarget: false },
-        { id: 3, row: 1, col: 3, length: 3, isHorizontal: false, isTarget: false },
-        { id: 4, row: 2, col: 4, length: 2, isHorizontal: false, isTarget: false },
-        { id: 5, row: 0, col: 0, length: 2, isHorizontal: true, isTarget: false },
-        { id: 6, row: 1, col: 0, length: 2, isHorizontal: true, isTarget: false },
-        { id: 7, row: 3, col: 1, length: 2, isHorizontal: true, isTarget: false },
-        { id: 8, row: 4, col: 3, length: 3, isHorizontal: true, isTarget: false },
-        { id: 9, row: 5, col: 0, length: 2, isHorizontal: true, isTarget: false },
-      ],
-    },
-    {
-      name: 'Level 9',
-      difficulty: 'Easy',
-      optimalMoves: 10,
-      blocks: [
-        { id: 1, row: 2, col: 1, length: 2, isHorizontal: true, isTarget: true },
-        { id: 2, row: 0, col: 1, length: 2, isHorizontal: false, isTarget: false },
-        { id: 3, row: 2, col: 0, length: 2, isHorizontal: false, isTarget: false },
-        { id: 4, row: 1, col: 3, length: 2, isHorizontal: false, isTarget: false },
-        { id: 5, row: 0, col: 4, length: 2, isHorizontal: true, isTarget: false },
-        { id: 6, row: 3, col: 2, length: 3, isHorizontal: true, isTarget: false },
-        { id: 7, row: 4, col: 1, length: 2, isHorizontal: true, isTarget: false },
-        { id: 8, row: 5, col: 3, length: 2, isHorizontal: true, isTarget: false },
-      ],
-    },
-    {
-      name: 'Level 10',
-      difficulty: 'Easy',
-      optimalMoves: 13,
-      blocks: [
-        { id: 1, row: 2, col: 0, length: 2, isHorizontal: true, isTarget: true },
-        { id: 2, row: 0, col: 0, length: 3, isHorizontal: false, isTarget: false },
-        { id: 3, row: 1, col: 2, length: 2, isHorizontal: false, isTarget: false },
-        { id: 4, row: 0, col: 3, length: 3, isHorizontal: false, isTarget: false },
-        { id: 5, row: 3, col: 4, length: 2, isHorizontal: false, isTarget: false },
-        { id: 6, row: 1, col: 4, length: 2, isHorizontal: true, isTarget: false },
-        { id: 7, row: 3, col: 0, length: 2, isHorizontal: true, isTarget: false },
-        { id: 8, row: 4, col: 2, length: 2, isHorizontal: true, isTarget: false },
-        { id: 9, row: 5, col: 0, length: 3, isHorizontal: true, isTarget: false },
-      ],
-    },
-    // Hard Levels (11-20)
-    {
-      name: 'Level 11',
       difficulty: 'Hard',
-      optimalMoves: 15,
+      optimalMoves: 9,
       blocks: [
         { id: 1, row: 2, col: 2, length: 2, isHorizontal: true, isTarget: true },
         { id: 2, row: 2, col: 0, length: 2, isHorizontal: false, isTarget: false },
@@ -242,10 +139,11 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
         { id: 10, row: 5, col: 3, length: 3, isHorizontal: true, isTarget: false },
       ],
     },
+    // Hard Level 5
     {
-      name: 'Level 12',
+      name: 'Level 5',
       difficulty: 'Hard',
-      optimalMoves: 18,
+      optimalMoves: 14,
       blocks: [
         { id: 1, row: 2, col: 3, length: 2, isHorizontal: true, isTarget: true },
         { id: 2, row: 0, col: 5, length: 3, isHorizontal: false, isTarget: false },
@@ -257,10 +155,11 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
         { id: 8, row: 5, col: 0, length: 3, isHorizontal: true, isTarget: false },
       ],
     },
+    // Hard Level 6
     {
-      name: 'Level 13',
+      name: 'Level 6',
       difficulty: 'Hard',
-      optimalMoves: 16,
+      optimalMoves: 9,
       blocks: [
         { id: 1, row: 2, col: 0, length: 2, isHorizontal: true, isTarget: true },
         { id: 2, row: 0, col: 1, length: 2, isHorizontal: false, isTarget: false },
@@ -273,141 +172,17 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
         { id: 6, row: 1, col: 4, length: 2, isHorizontal: true, isTarget: false },
       ],
     },
-    {
-      name: 'Level 14',
-      difficulty: 'Hard',
-      optimalMoves: 17,
-      blocks: [
-        { id: 1, row: 2, col: 1, length: 2, isHorizontal: true, isTarget: true },
-        { id: 2, row: 0, col: 0, length: 3, isHorizontal: false, isTarget: false },
-        { id: 3, row: 1, col: 1, length: 3, isHorizontal: false, isTarget: false },
-        { id: 4, row: 0, col: 2, length: 2, isHorizontal: false, isTarget: false },
-        { id: 5, row: 0, col: 3, length: 3, isHorizontal: false, isTarget: false },
-        { id: 6, row: 3, col: 4, length: 3, isHorizontal: false, isTarget: false },
-        { id: 7, row: 1, col: 4, length: 2, isHorizontal: true, isTarget: false },
-        { id: 8, row: 4, col: 0, length: 2, isHorizontal: true, isTarget: false },
-        { id: 9, row: 5, col: 2, length: 2, isHorizontal: true, isTarget: false },
-      ],
-    },
-    {
-      name: 'Level 15',
-      difficulty: 'Hard',
-      optimalMoves: 19,
-      blocks: [
-        { id: 1, row: 2, col: 0, length: 2, isHorizontal: true, isTarget: true },
-        { id: 2, row: 0, col: 2, length: 3, isHorizontal: false, isTarget: false },
-        { id: 3, row: 1, col: 3, length: 2, isHorizontal: false, isTarget: false },
-        { id: 4, row: 2, col: 4, length: 3, isHorizontal: false, isTarget: false },
-        { id: 5, row: 0, col: 0, length: 2, isHorizontal: true, isTarget: false },
-        { id: 6, row: 1, col: 0, length: 2, isHorizontal: true, isTarget: false },
-        { id: 7, row: 3, col: 1, length: 3, isHorizontal: true, isTarget: false },
-        { id: 8, row: 4, col: 0, length: 2, isHorizontal: true, isTarget: false },
-        { id: 9, row: 5, col: 2, length: 2, isHorizontal: true, isTarget: false },
-        { id: 10, row: 5, col: 5, length: 2, isHorizontal: false, isTarget: false },
-      ],
-    },
-    {
-      name: 'Level 16',
-      difficulty: 'Hard',
-      optimalMoves: 20,
-      blocks: [
-        { id: 1, row: 2, col: 2, length: 2, isHorizontal: true, isTarget: true },
-        { id: 2, row: 0, col: 0, length: 2, isHorizontal: false, isTarget: false },
-        { id: 3, row: 0, col: 1, length: 3, isHorizontal: false, isTarget: false },
-        { id: 4, row: 1, col: 2, length: 2, isHorizontal: false, isTarget: false },
-        { id: 5, row: 0, col: 3, length: 2, isHorizontal: false, isTarget: false },
-        { id: 6, row: 3, col: 4, length: 3, isHorizontal: false, isTarget: false },
-        { id: 7, row: 0, col: 4, length: 2, isHorizontal: true, isTarget: false },
-        { id: 8, row: 3, col: 0, length: 3, isHorizontal: true, isTarget: false },
-        { id: 9, row: 4, col: 0, length: 2, isHorizontal: true, isTarget: false },
-        { id: 10, row: 5, col: 1, length: 3, isHorizontal: true, isTarget: false },
-      ],
-    },
-    {
-      name: 'Level 17',
-      difficulty: 'Hard',
-      optimalMoves: 21,
-      blocks: [
-        { id: 1, row: 2, col: 1, length: 2, isHorizontal: true, isTarget: true },
-        { id: 2, row: 0, col: 1, length: 2, isHorizontal: false, isTarget: false },
-        { id: 3, row: 2, col: 0, length: 3, isHorizontal: false, isTarget: false },
-        { id: 4, row: 1, col: 2, length: 3, isHorizontal: false, isTarget: false },
-        { id: 5, row: 0, col: 3, length: 2, isHorizontal: false, isTarget: false },
-        { id: 6, row: 1, col: 4, length: 2, isHorizontal: false, isTarget: false },
-        { id: 7, row: 3, col: 5, length: 3, isHorizontal: false, isTarget: false },
-        { id: 8, row: 0, col: 4, length: 2, isHorizontal: true, isTarget: false },
-        { id: 9, row: 3, col: 2, length: 2, isHorizontal: true, isTarget: false },
-        { id: 10, row: 4, col: 0, length: 2, isHorizontal: true, isTarget: false },
-        { id: 11, row: 5, col: 2, length: 3, isHorizontal: true, isTarget: false },
-      ],
-    },
-    {
-      name: 'Level 18',
-      difficulty: 'Hard',
-      optimalMoves: 22,
-      blocks: [
-        { id: 1, row: 2, col: 0, length: 2, isHorizontal: true, isTarget: true },
-        { id: 2, row: 0, col: 0, length: 2, isHorizontal: false, isTarget: false },
-        { id: 3, row: 1, col: 1, length: 2, isHorizontal: false, isTarget: false },
-        { id: 4, row: 0, col: 2, length: 3, isHorizontal: false, isTarget: false },
-        { id: 5, row: 1, col: 3, length: 2, isHorizontal: false, isTarget: false },
-        { id: 6, row: 2, col: 4, length: 2, isHorizontal: false, isTarget: false },
-        { id: 7, row: 3, col: 0, length: 2, isHorizontal: false, isTarget: false },
-        { id: 8, row: 4, col: 5, length: 2, isHorizontal: false, isTarget: false },
-        { id: 9, row: 1, col: 4, length: 2, isHorizontal: true, isTarget: false },
-        { id: 10, row: 3, col: 2, length: 2, isHorizontal: true, isTarget: false },
-        { id: 11, row: 4, col: 1, length: 2, isHorizontal: true, isTarget: false },
-        { id: 12, row: 5, col: 0, length: 2, isHorizontal: true, isTarget: false },
-      ],
-    },
-    {
-      name: 'Level 19',
-      difficulty: 'Hard',
-      optimalMoves: 23,
-      blocks: [
-        { id: 1, row: 2, col: 2, length: 2, isHorizontal: true, isTarget: true },
-        { id: 2, row: 0, col: 1, length: 3, isHorizontal: false, isTarget: false },
-        { id: 3, row: 1, col: 2, length: 2, isHorizontal: false, isTarget: false },
-        { id: 4, row: 0, col: 3, length: 2, isHorizontal: false, isTarget: false },
-        { id: 5, row: 2, col: 4, length: 3, isHorizontal: false, isTarget: false },
-        { id: 6, row: 3, col: 0, length: 3, isHorizontal: false, isTarget: false },
-        { id: 7, row: 0, col: 4, length: 2, isHorizontal: true, isTarget: false },
-        { id: 8, row: 1, col: 3, length: 2, isHorizontal: true, isTarget: false },
-        { id: 9, row: 3, col: 3, length: 2, isHorizontal: true, isTarget: false },
-        { id: 10, row: 4, col: 1, length: 2, isHorizontal: true, isTarget: false },
-        { id: 11, row: 5, col: 3, length: 3, isHorizontal: true, isTarget: false },
-      ],
-    },
-    {
-      name: 'Level 20',
-      difficulty: 'Hard',
-      optimalMoves: 25,
-      blocks: [
-        { id: 1, row: 2, col: 1, length: 2, isHorizontal: true, isTarget: true },
-        { id: 2, row: 0, col: 0, length: 3, isHorizontal: false, isTarget: false },
-        { id: 3, row: 1, col: 1, length: 2, isHorizontal: false, isTarget: false },
-        { id: 4, row: 0, col: 2, length: 2, isHorizontal: false, isTarget: false },
-        { id: 5, row: 2, col: 0, length: 2, isHorizontal: false, isTarget: false },
-        { id: 6, row: 0, col: 3, length: 3, isHorizontal: false, isTarget: false },
-        { id: 7, row: 1, col: 4, length: 3, isHorizontal: false, isTarget: false },
-        { id: 8, row: 3, col: 5, length: 3, isHorizontal: false, isTarget: false },
-        { id: 9, row: 3, col: 1, length: 2, isHorizontal: true, isTarget: false },
-        { id: 10, row: 4, col: 0, length: 2, isHorizontal: true, isTarget: false },
-        { id: 11, row: 4, col: 3, length: 2, isHorizontal: true, isTarget: false },
-        { id: 12, row: 5, col: 1, length: 2, isHorizontal: true, isTarget: false },
-      ],
-    },
   ];
 
+  // ✅ Select levels based on mode
   const selectedLevels = useMemo(() => {
     if (isTrialMode) {
-      // Trial mode: Pick 3 random levels from all 20
+      // Trial mode: Select 2-3 random levels
       const shuffled = [...allLevels].sort(() => Math.random() - 0.5);
       return shuffled.slice(0, 3);
     } else {
-      // Actual game: Pick 17 random levels from all 20
-      const shuffled = [...allLevels].sort(() => Math.random() - 0.5);
-      return shuffled.slice(0, 17);
+      // Actual game: Use all 6 levels in sequential order
+      return allLevels;
     }
   }, [isTrialMode]);
 
@@ -428,7 +203,6 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
   useEffect(() => {
     if (allLevelsComplete && !hasCompletedRef.current) {
       hasCompletedRef.current = true;
-      // Pass the number of levels completed (puzzlesCompleted) and total moves
       onComplete(puzzlesCompleted, totalMoves);
     }
   }, [allLevelsComplete, puzzlesCompleted, totalMoves, onComplete]);
@@ -485,7 +259,7 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
     for (let i = 0; i <= currentLevel; i++) {
       if (levelMoves[i] > 0 || i === currentLevel) {
         const used = i === currentLevel ? moves : levelMoves[i];
-        const timeSpent = i === currentLevel ? (levelStartTime - timeRemaining) : levelTimes[i];
+        const timeSpent = i === currentLevel ? levelStartTime - timeRemaining : levelTimes[i];
         total += calculateLevelScore(i, used, timeSpent);
       }
     }
@@ -496,7 +270,6 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
     const target = currentBlocks.find((b) => b.isTarget);
     if (target && target.col === GRID_SIZE - target.length) {
       setLevelComplete(true);
-      setPuzzlesCompleted(prev => prev + 1);
 
       const newLevelMoves = [...levelMoves];
       newLevelMoves[currentLevel] = moves;
@@ -510,8 +283,14 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
       const newScore = calculateTotalScore();
       setScore(newScore);
 
+      setPuzzlesCompleted((prev) => prev + 1);
+      setTotalMoves((prev) => prev + moves);
+
+      // ✅ Automatically move to next level after completion
       if (currentLevel < selectedLevels.length - 1) {
-        setTimeout(() => loadLevel(currentLevel + 1), 2500);
+        setTimeout(() => {
+          loadLevel(currentLevel + 1);
+        }, 2000);
       } else {
         setAllLevelsComplete(true);
       }
@@ -527,7 +306,6 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
 
     for (let other of blocks) {
       if (other.id === block.id) continue;
-
       for (let i = 0; i < block.length; i++) {
         const checkRow = block.isHorizontal ? newRow : newRow + i;
         const checkCol = block.isHorizontal ? newCol + i : newCol;
@@ -535,7 +313,6 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
         for (let j = 0; j < other.length; j++) {
           const otherRow = other.isHorizontal ? other.row : other.row + j;
           const otherCol = other.isHorizontal ? other.col + j : other.col;
-
           if (checkRow === otherRow && checkCol === otherCol) {
             return false;
           }
@@ -564,7 +341,6 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
     if (draggedBlock === null || !gridRef.current) return;
 
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-
     rafRef.current = requestAnimationFrame(() => {
       const block = blocks.find((b) => b.id === draggedBlock);
       if (!block) return;
@@ -595,7 +371,6 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
-
     if (draggedBlock === null || tempPosition === null) return;
 
     const block = blocks.find((b) => b.id === draggedBlock);
@@ -607,7 +382,6 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
       );
       setBlocks(newBlocks);
       setMoves((m) => m + 1);
-      setTotalMoves((t) => t + 1);
       checkWin(newBlocks);
     }
 
@@ -630,7 +404,6 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
 
   const getBlockColor = (b: Block) => {
     if (b.isTarget) return 'bg-gradient-to-br from-red-500 to-red-600';
-
     const colors = [
       'bg-gradient-to-br from-blue-500 to-blue-600',
       'bg-gradient-to-br from-purple-500 to-purple-600',
@@ -644,259 +417,85 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
     return colors[b.id % colors.length];
   };
 
+  const getDifficultyColor = () => {
+    switch (selectedLevels[currentLevel]?.difficulty) {
+      case 'Easy':
+        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'Hard':
+        return 'text-red-600 bg-red-50 border-red-200';
+      default:
+        return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="min-h-screen playful-gradient p-4 relative overflow-hidden"
-    >
-      {/* Animated Background Orbs */}
-      <div className="absolute -z-10 top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.2, 0.3],
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute w-96 h-96 bg-[#8558ed]/20 rounded-full blur-3xl top-10 -left-20"
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.2, 0.3, 0.2],
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className="absolute w-80 h-80 bg-[#b18aff]/20 rounded-full blur-3xl bottom-10 -right-20"
-        />
-      </div>
-
-      {/* Floating Icons */}
-      <motion.div
-        animate={{
-          y: [0, -20, 0],
-          rotate: [0, 10, 0],
-        }}
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-20 left-10 pointer-events-none"
-      >
-        <Sparkles className="w-8 h-8 text-[#8558ed]/30" />
-      </motion.div>
-      <motion.div
-        animate={{
-          y: [0, 20, 0],
-          rotate: [0, -10, 0],
-        }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        className="absolute top-32 right-16 pointer-events-none"
-      >
-        <Zap className="w-10 h-10 text-[#b18aff]/30" />
-      </motion.div>
-      <motion.div
-        animate={{
-          y: [0, -15, 0],
-          rotate: [0, 15, 0],
-        }}
-        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-        className="absolute bottom-24 left-20 pointer-events-none"
-      >
-        <Star className="w-7 h-7 text-[#8558ed]/30" />
-      </motion.div>
-
-      <div className="max-w-6xl mx-auto py-8 relative z-10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
+      <div className="mx-auto max-w-5xl">
         {/* Header */}
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-center mb-8"
-        >
-          <motion.h1
-            className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#8558ed] via-[#b18aff] to-[#8558ed] drop-shadow-[0_0_25px_rgba(133,88,237,0.3)] tracking-tight mb-2 flex items-center justify-center gap-3"
-          >
-            <Car className="w-12 h-12 text-[#8558ed]" />
-            Unblock Me Quest
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="text-[#8558ed]/80 font-medium flex items-center justify-center gap-2"
-          >
-            <Car className="w-5 h-5" />
-            Move blocks to free the red car!
-          </motion.p>
-        </motion.div>
-
-        {/* Stats Cards */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="flex items-center gap-4 mb-6 flex-wrap justify-center"
-        >
-          <motion.div
-            whileHover={{ scale: 1.05, y: -2 }}
-            className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl px-6 py-3 shadow-lg shadow-[#8558ed]/10"
-          >
-            <div className="flex items-center gap-3">
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="bg-gradient-to-tr from-[#8558ed] to-[#b18aff] w-10 h-10 rounded-full flex items-center justify-center"
-              >
-                <Trophy className="w-5 h-5 text-white" />
-              </motion.div>
-              <div>
-                <div className="text-xs text-[#030303]/60 font-medium">{selectedLevels[currentLevel]?.name} - {selectedLevels[currentLevel]?.difficulty}</div>
-                <div className="text-2xl font-bold text-[#8558ed]">Level {currentLevel + 1}</div>
-              </div>
+        <div className="mb-8 flex items-center justify-between rounded-2xl bg-white p-6 shadow-lg">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900">Unblock Me Challenge</h1>
+            <p className="mt-2 text-gray-600">
+              Complete Level {currentLevel + 1} of {selectedLevels.length}
+            </p>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <p className="text-sm text-gray-500">Time Remaining</p>
+              <p className="text-3xl font-bold text-indigo-600">
+                {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+              </p>
             </div>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ scale: 1.05, y: -2 }}
-            className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl px-6 py-3 shadow-lg shadow-[#8558ed]/10"
-          >
-            <div className="flex items-center gap-3">
-              <motion.div
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="bg-gradient-to-tr from-green-500 to-emerald-500 w-10 h-10 rounded-full flex items-center justify-center"
-              >
-                <Star className="w-5 h-5 text-white" />
-              </motion.div>
-              <div>
-                <div className="text-xs text-[#030303]/60 font-medium">Score</div>
-                <div className="text-2xl font-bold text-green-600">{score}<span className="text-lg text-gray-400">/100</span></div>
-              </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-500">Puzzles Solved</p>
+              <p className="text-3xl font-bold text-green-600">{puzzlesCompleted}</p>
             </div>
-          </motion.div>
+          </div>
+        </div>
 
-          <motion.div
-            whileHover={{ scale: 1.05, y: -2 }}
-            className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl px-6 py-3 shadow-lg shadow-[#8558ed]/10"
-          >
-            <div className="flex items-center gap-3">
-              <motion.div
-                animate={{ rotate: [0, -10, 10, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="bg-gradient-to-tr from-blue-500 to-cyan-500 w-10 h-10 rounded-full flex items-center justify-center"
-              >
-                <Target className="w-5 h-5 text-white" />
-              </motion.div>
-              <div>
-                <div className="text-xs text-[#030303]/60 font-medium">Moves</div>
-                <div className="text-2xl font-bold text-blue-600">
-                  {moves}
-                  {moves > selectedLevels[currentLevel]?.optimalMoves && (
-                    <span className="text-lg text-orange-500 ml-1">
-                      (+{moves - selectedLevels[currentLevel]?.optimalMoves})
-                    </span>
-                  )}
-                </div>
-              </div>
+        {/* Game Board */}
+        <div className="rounded-2xl bg-white p-8 shadow-xl">
+          {/* Level Info */}
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className={`rounded-lg border-2 px-4 py-2 text-sm font-bold ${getDifficultyColor()}`}>
+                {selectedLevels[currentLevel]?.name} - {selectedLevels[currentLevel]?.difficulty}
+              </span>
+              <span className="text-lg font-medium text-gray-700">
+                Moves: <span className="font-bold text-indigo-600">{moves}</span>
+                {moves > selectedLevels[currentLevel]?.optimalMoves && (
+                  <span className="ml-2 text-sm text-orange-500">
+                    (+{moves - selectedLevels[currentLevel]?.optimalMoves} extra)
+                  </span>
+                )}
+              </span>
             </div>
-          </motion.div>
-        </motion.div>
-
-        {/* Level Progress */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.35 }}
-          className="mb-6 flex items-center gap-3 max-w-2xl mx-auto"
-        >
-          {selectedLevels.map((level, index) => (
-            <div key={index} className="flex-1">
-              <div
-                className={`h-3 rounded-full transition-all duration-500 ${
-                  index < currentLevel
-                    ? 'bg-gradient-to-r from-green-500 to-green-600 shadow-md'
-                    : index === currentLevel
-                    ? 'bg-gradient-to-r from-[#8558ed] to-[#b18aff] shadow-lg'
-                    : 'bg-gray-300'
-                }`}
-              />
-              <p className="mt-1 text-center text-xs font-medium text-[#030303]/60">{level.name}</p>
+            <div className="text-right">
+              <p className="text-sm text-gray-500">Target</p>
+              <p className="text-xl font-bold text-gray-700">≤ {selectedLevels[currentLevel]?.optimalMoves} moves</p>
             </div>
-          ))}
-        </motion.div>
+          </div>
 
-        {/* Level Complete Animation */}
-        <AnimatePresence>
-          {levelComplete && (
-            <motion.div
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              exit={{ scale: 0, rotate: 180 }}
-              transition={{ type: "spring", stiffness: 200, damping: 15 }}
-              className="mb-4 flex justify-center"
-            >
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 0.6, repeat: Infinity }}
-                className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-8 py-4 rounded-2xl shadow-2xl shadow-green-500/30 flex items-center gap-3"
-              >
-                <motion.span
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                >
-                  <Sparkles className="w-8 h-8" />
-                </motion.span>
-                <span className="text-2xl font-bold">Level Complete!</span>
-                <motion.span
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 0.5, repeat: Infinity }}
-                >
-                  <CheckCircle2 className="w-8 h-8" />
-                </motion.span>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Game Board and Instructions Side by Side */}
-        <div className="flex items-start gap-8 justify-center">
-          {/* Instructions - Left Side */}
-          <motion.div
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="w-64"
-          >
-            <div className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-6 shadow-lg shadow-[#8558ed]/10 sticky top-8">
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <Target className="w-5 h-5 text-[#8558ed]" />
-                <h3 className="text-lg font-bold text-[#8558ed]">How to Play</h3>
+          {/* Progress Bar */}
+          <div className="mb-8 flex items-center gap-2">
+            {selectedLevels.map((level, index) => (
+              <div key={index} className="flex-1">
+                <div
+                  className={`h-3 rounded-full transition-all duration-500 ${
+                    index < currentLevel
+                      ? 'bg-gradient-to-r from-green-500 to-green-600 shadow-md'
+                      : index === currentLevel
+                      ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 shadow-lg'
+                      : 'bg-gray-200'
+                  }`}
+                />
+                <p className="mt-1 text-center text-xs font-medium text-gray-500">{level.name}</p>
               </div>
-              <div className="space-y-2 text-sm text-[#030303]/70">
-                <p className="flex items-center gap-2">
-                  <MousePointer className="w-5 h-5 text-[#8558ed]" />
-                  <span><strong>Click a block</strong> to select it</span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <Keyboard className="w-5 h-5 text-[#8558ed]" />
-                  <span><strong>Drag blocks</strong> to move them</span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <Car className="w-5 h-5 text-[#8558ed]" />
-                  <span><strong>Move the red car</strong> to the exit!</span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-[#8558ed]" />
-                  <span>Complete in <strong>≤{selectedLevels[currentLevel]?.optimalMoves} moves</strong></span>
-                </p>
-              </div>
-            </div>
-          </motion.div>
+            ))}
+          </div>
 
-          {/* Game Board - Right Side */}
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
+          {/* Grid */}
+          <div className="flex items-center justify-center">
             <div
               className="relative"
               style={{
@@ -906,7 +505,7 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
             >
               <div
                 ref={gridRef}
-                className="absolute rounded-2xl bg-gradient-to-br from-amber-100 via-amber-50 to-yellow-100 p-6 shadow-2xl shadow-[#8558ed]/20 overflow-hidden border-2 border-white/40"
+                className="absolute rounded-2xl bg-gradient-to-br from-amber-100 via-amber-50 to-yellow-100 p-6 shadow-inner overflow-hidden"
                 style={{
                   width: GRID_SIZE * CELL_SIZE + 48,
                   height: GRID_SIZE * CELL_SIZE + 48,
@@ -917,7 +516,7 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
               >
-                {/* Grid cells */}
+                {/* Grid lines */}
                 <div
                   className="absolute inset-6 grid"
                   style={{
@@ -934,12 +533,10 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
                 {blocks.map((block) => {
                   const position = getBlockPosition(block);
                   const isDragging = draggedBlock === block.id;
-
                   return (
-                    <motion.div
+                    <div
                       key={block.id}
                       onMouseDown={(e) => handleMouseDown(block.id, e)}
-                      whileHover={{ scale: isDragging ? 1 : 1.02 }}
                       className={`absolute rounded-xl shadow-lg cursor-grab active:cursor-grabbing select-none ${getBlockColor(
                         block
                       )} ${isDragging ? 'shadow-2xl z-30 ring-4 ring-white/50' : 'hover:shadow-xl z-10'}`}
@@ -948,21 +545,12 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
                         left: position.left + 24,
                         width: block.isHorizontal ? block.length * CELL_SIZE : CELL_SIZE,
                         height: block.isHorizontal ? CELL_SIZE : block.length * CELL_SIZE,
-                        transition: 'top 80ms ease-out, left 80ms ease-out',
+                        transition: isDragging ? 'none' : 'top 80ms ease-out, left 80ms ease-out',
                       }}
                     >
                       <div className="flex h-full w-full items-center justify-center">
                         {block.isTarget ? (
-                          <motion.svg
-                            animate={{ rotate: [0, -5, 5, 0] }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                            className="h-12 w-12 text-white drop-shadow-2xl"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-                            <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
-                          </motion.svg>
+                          <Car className="h-12 w-12 text-white drop-shadow-2xl" />
                         ) : (
                           <div className="flex gap-1.5">
                             {block.isHorizontal ? (
@@ -979,16 +567,14 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
                           </div>
                         )}
                       </div>
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>
 
               {/* Exit indicator */}
-              <motion.div
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="absolute flex items-center justify-center bg-gradient-to-r from-green-500 to-emerald-500 rounded-r-xl shadow-xl z-50"
+              <div
+                className="absolute flex items-center justify-center bg-gradient-to-r from-green-500 to-emerald-500 rounded-r-xl shadow-xl z-50 animate-pulse"
                 style={{
                   left: GRID_SIZE * CELL_SIZE + 48 + 8,
                   top: 24 + 2 * CELL_SIZE + (CELL_SIZE - 80) / 2,
@@ -997,26 +583,67 @@ export const UnblockMe: React.FC<UnblockMeProps> = ({ onComplete, timeRemaining,
                 }}
                 aria-label="Exit"
               >
-                <motion.svg
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                  className="h-8 w-8 text-white drop-shadow-lg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M13 7l5 5m0 0l-5 5m5-5H6"
-                  />
-                </motion.svg>
-              </motion.div>
+                <Target className="h-8 w-8 text-white drop-shadow-lg" />
+              </div>
             </div>
-          </motion.div>
+          </div>
+
+          {/* Instructions */}
+          <div className="mt-8 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-2 border-blue-100">
+            <h3 className="mb-4 text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-indigo-600" />
+              How to Play
+            </h3>
+            <div className="space-y-3 text-sm text-gray-700">
+              <div className="flex items-start gap-3 rounded-lg bg-red-50 p-3 border border-red-100">
+                <Car className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-red-600">Goal:</strong> Move the red car to the exit on the right
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-lg bg-orange-50 p-3 border border-orange-100">
+                <MousePointer className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-orange-600">Controls:</strong> Drag blocks horizontally or vertically to clear
+                  the path
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-lg bg-green-50 p-3 border border-green-100">
+                <Trophy className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-green-600">Scoring:</strong> Complete levels quickly with minimal moves for
+                  better scores
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Level Complete Message */}
+          <AnimatePresence>
+            {levelComplete && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+              >
+                <div className="rounded-3xl bg-white p-12 shadow-2xl text-center max-w-md">
+                  <CheckCircle2 className="h-20 w-20 text-green-500 mx-auto mb-6" />
+                  <h2 className="text-4xl font-bold text-gray-900 mb-4">Level Complete! 🎉</h2>
+                  <p className="text-xl text-gray-600 mb-6">
+                    Completed in <span className="font-bold text-indigo-600">{moves}</span> moves
+                  </p>
+                  {currentLevel < selectedLevels.length - 1 ? (
+                    <p className="text-gray-500">Loading next level...</p>
+                  ) : (
+                    <p className="text-green-600 font-bold">All levels completed!</p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };

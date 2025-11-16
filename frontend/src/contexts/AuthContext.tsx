@@ -50,8 +50,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('🔐 Login attempt:', { email, role, googleId });
 
+      // ✅ UPDATED: Added insightfusionanalytics@gmail.com to admin list
       if (role === 'admin') {
-        const adminEmails = ['dhumalajinkya2004@gmail.com','chiragkhati04@gmail.com'];
+        const adminEmails = [
+          'dhumalajinkya2004@gmail.com',
+          'chiragkhati04@gmail.com',
+          'insightfusionanalytics@gmail.com'
+        ];
+        
         if (!adminEmails.includes(email)) {
           toast.error('Unauthorized: Admin access requires a valid admin email');
           setLoading(false);

@@ -151,23 +151,42 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
 
 export const initializeDefaultAdmin = async (): Promise<void> => {
   try {
-    // Check if admin exists
-    const adminEmail = 'chiragkhati04@gmail.com';
-    const existingAdmin = await getUserByEmail(adminEmail);
-    
-    if (!existingAdmin) {
-      const adminUser: User = {
-        id: 'admin-default',
-        email: adminEmail,
+    // ✅ UPDATED: Initialize TWO admin accounts
+    const adminAccounts = [
+      {
+        email: 'chiragkhati04@gmail.com',
+        id: 'admin-default-1',
         name: 'IFA Admin',
-        googleId: 'admin-legacy',
-        role: 'admin',
-        createdAt: new Date().toISOString(),
-      };
-      await saveUser(adminUser);
-      console.log('✅ Default admin user created');
+        googleId: 'admin-legacy-1'
+      },
+      {
+        email: 'insightfusionanalytics@gmail.com',
+        id: 'admin-default-2',
+        name: 'IFA Admin 2',
+        googleId: 'admin-legacy-2'
+      }
+    ];
+
+    // Create both admin accounts if they don't exist
+    for (const adminData of adminAccounts) {
+      const existingAdmin = await getUserByEmail(adminData.email);
+      
+      if (!existingAdmin) {
+        const adminUser: User = {
+          id: adminData.id,
+          email: adminData.email,
+          name: adminData.name,
+          googleId: adminData.googleId,
+          role: 'admin',
+          createdAt: new Date().toISOString(),
+        };
+        await saveUser(adminUser);
+        console.log(`✅ Admin user created: ${adminData.email}`);
+      } else {
+        console.log(`✓ Admin user already exists: ${adminData.email}`);
+      }
     }
   } catch (error) {
-    console.error('Error initializing default admin:', error);
+    console.error('Error initializing default admins:', error);
   }
 };
